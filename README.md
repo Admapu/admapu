@@ -54,6 +54,27 @@ Este repositorio contiene los smart contracts y el tooling necesario para deploy
   - Verifica elegibilidad usando el verificador de identidad.
   - Registra wallets que ya han reclamado para evitar múltiples claims.
 
+## Notas de diseño
+- El token no almacena datos de identidad.
+- La lógica de verificación es externa y reemplazable.
+- Los contratos mock son exclusivos para Sepolia.
+- La arquitectura es modular y permite:
+  - Integración futura de pruebas ZK reales
+  - Verificadores administrados por entidades públicas
+  - Programas sociales con lógica propia
+
+## Estado del proyecto
+- ✅ Lógica base del token implementada
+- ✅ Deploy funcional en Sepolia
+- ✅ Minting y transferencias restringidas por identidad
+- ✅ Mecanismo de claim único
+- ⏳ Verificador ZK real (producción)
+- ⏳ Gobernanza / DAO
+
+
 ## Publicaciones
 - [Blog personal](https://borisquiroz.dev/posts/chilean-stable-coin/)
 - [LinkedIn](https://www.linkedin.com/pulse/c%C3%B3mo-podr%C3%ADa-una-stablecoin-basada-en-identidad-el-acceso-quiroz-zyzte/?trackingId=1j4%2FUTh%2BQFuDWYJbkd%2BobA%3D%3D)
+
+## Licencia
+MIT
