@@ -1,8 +1,7 @@
 # Creación de mnemonic para usar wallets deterministicas
 
 ```
-Phrase:
-comic issue champion enact useless hammer fan opera odor merry brief chef
+Phrase: $MNEMONIC
 
 Accounts:
 - Account 0:
@@ -20,7 +19,7 @@ A partir de lo anterior se derivarán las siguientes wallets (el index 0 es la w
 El comando utulizado es:
 
 ```
-cast wallet derive-private-key "comic issue champion enact useless hammer fan opera odor merry brief chef" <index>
+cast wallet derive-private-key "$MNEMONIC" <index>
 cast wallet address --private-key <private key del paso anterior>
 ```
 
