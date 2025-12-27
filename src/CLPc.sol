@@ -128,7 +128,7 @@ contract CLPc is ERC20, AccessControl, Pausable {
      * @param _newVerifier Nueva dirección del verificador
      * @dev Solo puede ser llamado por DEFAULT_ADMIN_ROLE
      */
-    function setZKVerifier(address _newVerifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setZkVerifier(address _newVerifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newVerifier == address(0)) revert ZeroAddress();
 
         address oldVerifier = address(zkVerifier);
