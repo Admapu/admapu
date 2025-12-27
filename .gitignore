@@ -1,8 +1,6 @@
 .env
-.github/
 
 broadcast/
 cache/
-foundry.lock
 lib/
 out/
