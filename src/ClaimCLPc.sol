@@ -81,7 +81,7 @@ contract ClaimCLPc {
         claimed[msg.sender] = true;
 
         // CLPc.mint() verificará también que msg.sender esté verificado (lo está)
-        TOKEN.mint(msg.sender, claimAmount);
+        TOKEN.mint(msg.sender, CLAIM_AMOUNT);
 
         emit Claimed(msg.sender, CLAIM_AMOUNT);
     }
