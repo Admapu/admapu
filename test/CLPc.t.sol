@@ -41,9 +41,7 @@ contract CLPcTest is Test {
     function testNonMinterCannotMint() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                outsider,
-                token.MINTER_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.MINTER_ROLE()
             )
         );
         vm.prank(outsider);
@@ -187,9 +185,7 @@ contract CLPcTest is Test {
         vm.prank(minter);
         vm.expectRevert(
             abi.encodeWithSelector(
-                CLPc.AnnualSupplyExceeded.selector,
-                token.MAX_ANNUAL_SUPPLY() + 1,
-                token.MAX_ANNUAL_SUPPLY()
+                CLPc.AnnualSupplyExceeded.selector, token.MAX_ANNUAL_SUPPLY() + 1, token.MAX_ANNUAL_SUPPLY()
             )
         );
         token.mintBatch(recipients, amounts);
@@ -201,9 +197,7 @@ contract CLPcTest is Test {
         vm.startPrank(outsider);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                outsider,
-                token.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.DEFAULT_ADMIN_ROLE()
             )
         );
         token.setZkVerifier(address(newVerifier));
@@ -214,9 +208,7 @@ contract CLPcTest is Test {
         vm.startPrank(outsider);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                outsider,
-                token.PAUSER_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.PAUSER_ROLE()
             )
         );
         token.setMintingPaused(true);
