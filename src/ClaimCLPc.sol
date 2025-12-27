@@ -16,9 +16,9 @@ interface IZKVerifierView {
  */
 contract ClaimCLPc {
     // --- Config ---
-    ICLPcMinter public immutable token;
-    IZKVerifierView public immutable verifier;
-    uint256 public immutable claimAmount;
+    ICLPcMinter public immutable TOKEN;
+    IZKVerifierView public immutable VERIFIER;
+    uint256 public immutable CLAIM_AMOUNT;
 
     // --- Admin simple ---
     address public admin;
@@ -41,17 +41,21 @@ contract ClaimCLPc {
     error ZeroAmount();
 
     modifier onlyAdmin() {
-        if (msg.sender != admin) revert NotAdmin();
+        _onlyAdmin();
         _;
+    }
+
+    function _onlyAdmin() internal view {
+        if (msg.sender != admin) revert NotAdmin();
     }
 
     constructor(address _token, address _verifier, uint256 _claimAmount, address _admin) {
         if (_token == address(0) || _verifier == address(0) || _admin == address(0)) revert ZeroAddress();
         if (_claimAmount == 0) revert ZeroAmount();
 
-        token = ICLPcMinter(_token);
-        verifier = IZKVerifierView(_verifier);
-        claimAmount = _claimAmount;
+        TOKEN = ICLPcMinter(_token);
+        VERIFIER = IZKVerifierView(_verifier);
+        CLAIM_AMOUNT = _claimAmount;
         admin = _admin;
     }
 
@@ -72,14 +76,14 @@ contract ClaimCLPc {
     function claim() external {
         if (paused) revert PausedError();
         if (claimed[msg.sender]) revert AlreadyClaimed(msg.sender);
-        if (!verifier.isVerified(msg.sender)) revert NotVerified(msg.sender);
+        if (!VERIFIER.isVerified(msg.sender)) revert NotVerified(msg.sender);
 
         claimed[msg.sender] = true;
 
         // CLPc.mint() verificará también que msg.sender esté verificado (lo está)
-        token.mint(msg.sender, claimAmount);
+        TOKEN.mint(msg.sender, claimAmount);
 
-        emit Claimed(msg.sender, claimAmount);
+        emit Claimed(msg.sender, CLAIM_AMOUNT);
     }
 }
 
