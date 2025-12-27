@@ -6,25 +6,25 @@ import {CLPc} from "../src/CLPc.sol";
 import {MockZKPassportVerifier} from "../src/mocks/MockZKPassportVerifier.sol";
 
 contract Deploy is Script {
-  function run() external returns (address verifier, address token) {
-    uint256 pk = vm.envUint("DEPLOYER_PK");
-    address admin = vm.addr(pk);
+    function run() external returns (address verifier, address token) {
+        uint256 pk = vm.envUint("DEPLOYER_PK");
+        address admin = vm.addr(pk);
 
-    vm.startBroadcast(pk);
+        vm.startBroadcast(pk);
 
-    MockZKPassportVerifier v = new MockZKPassportVerifier();
+        MockZKPassportVerifier v = new MockZKPassportVerifier();
 
-    // Importante: el admin del mock queda como msg.sender (deployer) por constructor.
-    // Y CLPc admin/minter/pauser queda en `admin`.
-    CLPc t = new CLPc(address(v), admin);
+        // Importante: el admin del mock queda como msg.sender (deployer) por constructor.
+        // Y CLPc admin/minter/pauser queda en `admin`.
+        CLPc t = new CLPc(address(v), admin);
 
-    vm.stopBroadcast();
+        vm.stopBroadcast();
 
-    console2.log("Admin:", admin);
-    console2.log("Verifier:", address(v));
-    console2.log("Token:", address(t));
+        console2.log("Admin:", admin);
+        console2.log("Verifier:", address(v));
+        console2.log("Token:", address(t));
 
-    return (address(v), address(t));
-  }
+        return (address(v), address(t));
+    }
 }
 
