@@ -103,7 +103,7 @@ contract CLPcTest is Test {
         token.mint(sender, amount);
 
         vm.prank(sender);
-        token.transfer(recipient, amount / 2);
+        assertTrue(token.transfer(recipient, amount / 2));
 
         assertEq(token.balanceOf(sender), amount / 2);
         assertEq(token.balanceOf(recipient), amount / 2);
@@ -117,7 +117,7 @@ contract CLPcTest is Test {
 
         vm.prank(sender);
         vm.expectRevert(abi.encodeWithSelector(CLPc.UnverifiedRecipient.selector, unverified));
-        token.transfer(unverified, 1);
+        assertTrue(token.transfer(unverified, 1));
     }
 
     function testTransferRevertsForUnverifiedSender() public {
@@ -129,7 +129,7 @@ contract CLPcTest is Test {
 
         vm.prank(sender);
         vm.expectRevert(abi.encodeWithSelector(CLPc.UnverifiedSender.selector, sender));
-        token.transfer(recipient, 1);
+        assertTrue(token.transfer(recipient, 1));
     }
 
     function testMintBatchMismatchedArraysReverts() public {
