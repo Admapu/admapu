@@ -9,7 +9,8 @@ on:
 
 env:
   FOUNDRY_PROFILE: ci
-  FOUNDRY_DISABLE_INSTALL: "true"
+  FOUNDRY_DISABLE_INSTALL: true
+  FOUNDRY_DISABLE_AUTO_INSTALL: true
 
 jobs:
   check:
