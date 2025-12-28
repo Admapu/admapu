@@ -28,7 +28,7 @@ contract CLPcTest is Test {
         verifier.verify(recipient2);
     }
 
-    function testAdminHasDefaultAndMinterRoles() public view {
+    function testAdminHasDefaultAndMinterRoles() public {
         assertTrue(token.hasRole(token.DEFAULT_ADMIN_ROLE(), admin));
         assertTrue(token.hasRole(token.MINTER_ROLE(), admin));
     }
