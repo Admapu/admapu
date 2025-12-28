@@ -28,9 +28,9 @@ contract CLPcTest is Test {
         verifier.verify(recipient2);
     }
 
-    function testAdminHasDefaultAndMinterRoles() public {
-        assertTrue(token.hasRole(token.DEFAULT_ADMIN_ROLE(), admin));
-        assertTrue(token.hasRole(token.MINTER_ROLE(), admin));
+    function testAdminHasDefaultAndMinterRoles() public view {
+        require(token.hasRole(token.DEFAULT_ADMIN_ROLE(), admin), "missing admin role");
+        require(token.hasRole(token.MINTER_ROLE(), admin), "missing minter role");
     }
 
     function testAdminCanGrantMinterRole() public {
@@ -116,8 +116,11 @@ contract CLPcTest is Test {
         token.mint(sender, amount);
 
         vm.prank(sender);
-        vm.expectRevert(abi.encodeWithSelector(CLPc.UnverifiedRecipient.selector, unverified));
-        assertTrue(token.transfer(unverified, 1));
+        (bool ok, bytes memory revertData) =
+            address(token).call(abi.encodeWithSelector(token.transfer.selector, unverified, 1));
+
+        assertFalse(ok);
+        assertEq(revertData, abi.encodeWithSelector(CLPc.UnverifiedRecipient.selector, unverified));
     }
 
     function testTransferRevertsForUnverifiedSender() public {
@@ -128,8 +131,11 @@ contract CLPcTest is Test {
         verifier.revoke(sender);
 
         vm.prank(sender);
-        vm.expectRevert(abi.encodeWithSelector(CLPc.UnverifiedSender.selector, sender));
-        assertTrue(token.transfer(recipient, 1));
+        (bool ok, bytes memory revertData) =
+            address(token).call(abi.encodeWithSelector(token.transfer.selector, recipient, 1));
+
+        assertFalse(ok);
+        assertEq(revertData, abi.encodeWithSelector(CLPc.UnverifiedSender.selector, sender));
     }
 
     function testMintBatchMismatchedArraysReverts() public {
