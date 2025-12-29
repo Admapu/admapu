@@ -3,8 +3,8 @@ name: Foundry CI checks
 permissions: {}
 
 on:
-  push:
   pull_request:
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 env:
