@@ -1,4 +1,7 @@
-# Creación de mnemonic para usar wallets deterministicas
+---
+title: "Creación de mnemonic para usar wallets deterministicas"
+head: []
+---
 
 ```
 Phrase: $MNEMONIC
