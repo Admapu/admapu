@@ -3,8 +3,6 @@ title: "CLPc — Roles y Política Operacional"
 head: []
 ---
 
-# CLPc — Roles y Política Operacional
-
 Este documento describe los **roles on-chain**, sus responsabilidades y la **política operacional** del contrato `CLPc`.
 
 El objetivo es dejar explícito **quién puede hacer qué**, bajo qué condiciones, y cómo se espera que estos roles sean operados en un entorno real (POC serio).

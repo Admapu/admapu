@@ -3,8 +3,6 @@ title: "CLPc – Proof of Concept (PoC)"
 head: []
 ---
 
-# CLPc – Proof of Concept (PoC)
-
 Un PoC funcional de CLPc debe demostrar:
 
 ## On-chain

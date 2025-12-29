@@ -12,5 +12,8 @@
   "dependencies": {
     "@astrojs/starlight": "^0.37.1",
     "astro": "^5.16.6"
+  },
+  "devDependencies": {
+    "wrangler": "^4.54.0"
   }
 }
