@@ -5,11 +5,11 @@ import {Test} from "forge-std/Test.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 import {CLPc} from "../src/CLPc.sol";
-import {MockZKPassportVerifier} from "../src/mocks/MockZKPassportVerifier.sol";
+import {MockIdentityRegistry} from "../src/mocks/MockIdentityRegistry.sol";
 
 contract CLPcTest is Test {
     CLPc private token;
-    MockZKPassportVerifier private verifier;
+    MockIdentityRegistry private registry;
 
     address private admin = address(this);
     address private minter = address(0xBEEF);
@@ -20,12 +20,15 @@ contract CLPcTest is Test {
     address private recipient2 = address(0xCAFE2);
 
     function setUp() public {
+        // Jan 1, 2025 00:00:00 UTC
         vm.warp(1735689600);
-        verifier = new MockZKPassportVerifier();
-        token = new CLPc(address(verifier), admin);
 
-        verifier.verify(recipient);
-        verifier.verify(recipient2);
+        registry = new MockIdentityRegistry(admin);
+        token = new CLPc(address(registry), admin);
+
+        // admin has ISSUER_ROLE by default
+        registry.setVerifiedChilean(recipient, true);
+        registry.setVerifiedChilean(recipient2, true);
     }
 
     function testAdminHasDefaultAndMinterRoles() public view {
@@ -41,7 +44,9 @@ contract CLPcTest is Test {
     function testNonMinterCannotMint() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.MINTER_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                outsider,
+                token.MINTER_ROLE()
             )
         );
         vm.prank(outsider);
@@ -87,6 +92,7 @@ contract CLPcTest is Test {
         vm.prank(minter);
         token.mint(recipient, max);
 
+        // Advance ~1 year
         vm.warp(block.timestamp + 31536000);
 
         vm.prank(minter);
@@ -97,7 +103,7 @@ contract CLPcTest is Test {
     }
 
     function testTransferSucceedsWhenBothVerified() public {
-        verifier.verify(sender);
+        registry.setVerifiedChilean(sender, true);
 
         uint256 amount = 100 * 10 ** token.decimals();
         token.mint(sender, amount);
@@ -110,7 +116,7 @@ contract CLPcTest is Test {
     }
 
     function testTransferRevertsForUnverifiedRecipient() public {
-        verifier.verify(sender);
+        registry.setVerifiedChilean(sender, true);
 
         uint256 amount = 100 * 10 ** token.decimals();
         token.mint(sender, amount);
@@ -124,11 +130,13 @@ contract CLPcTest is Test {
     }
 
     function testTransferRevertsForUnverifiedSender() public {
-        verifier.verify(sender);
+        registry.setVerifiedChilean(sender, true);
 
         uint256 amount = 100 * 10 ** token.decimals();
         token.mint(sender, amount);
-        verifier.revoke(sender);
+
+        // Revoke verification
+        registry.setVerifiedChilean(sender, false);
 
         vm.prank(sender);
         (bool ok, bytes memory revertData) =
@@ -139,74 +147,67 @@ contract CLPcTest is Test {
     }
 
     function testMintBatchMismatchedArraysReverts() public {
-        token.grantRole(token.MINTER_ROLE(), minter);
-
         address[] memory recipients = new address[](1);
         recipients[0] = recipient;
+
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1;
         amounts[1] = 1;
 
-        vm.prank(minter);
-        vm.expectRevert(bytes("CLPc: arrays length mismatch"));
+        vm.expectRevert("CLPc: arrays length mismatch");
         token.mintBatch(recipients, amounts);
     }
 
     function testMintBatchEmptyArraysReverts() public {
-        token.grantRole(token.MINTER_ROLE(), minter);
-
         address[] memory recipients = new address[](0);
         uint256[] memory amounts = new uint256[](0);
 
-        vm.prank(minter);
-        vm.expectRevert(bytes("CLPc: empty arrays"));
+        vm.expectRevert("CLPc: empty arrays");
         token.mintBatch(recipients, amounts);
     }
 
     function testMintBatchUnverifiedRecipientReverts() public {
-        token.grantRole(token.MINTER_ROLE(), minter);
-
         address[] memory recipients = new address[](2);
         recipients[0] = recipient;
         recipients[1] = unverified;
+
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = 1;
         amounts[1] = 1;
 
-        vm.prank(minter);
         vm.expectRevert(abi.encodeWithSelector(CLPc.UnverifiedRecipient.selector, unverified));
         token.mintBatch(recipients, amounts);
     }
 
     function testMintBatchAnnualSupplyExceededReverts() public {
-        token.grantRole(token.MINTER_ROLE(), minter);
-
         address[] memory recipients = new address[](2);
         recipients[0] = recipient;
         recipients[1] = recipient2;
+
         uint256[] memory amounts = new uint256[](2);
         amounts[0] = token.MAX_ANNUAL_SUPPLY();
         amounts[1] = 1;
 
-        vm.prank(minter);
+        uint256 totalAmount = amounts[0] + amounts[1];
+
         vm.expectRevert(
-            abi.encodeWithSelector(
-                CLPc.AnnualSupplyExceeded.selector, token.MAX_ANNUAL_SUPPLY() + 1, token.MAX_ANNUAL_SUPPLY()
-            )
+            abi.encodeWithSelector(CLPc.AnnualSupplyExceeded.selector, totalAmount, token.MAX_ANNUAL_SUPPLY())
         );
         token.mintBatch(recipients, amounts);
     }
 
     function testNonAdminCannotSetVerifier() public {
-        MockZKPassportVerifier newVerifier = new MockZKPassportVerifier();
+        MockIdentityRegistry newRegistry = new MockIdentityRegistry(admin);
 
         vm.startPrank(outsider);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                outsider,
+                token.DEFAULT_ADMIN_ROLE()
             )
         );
-        token.setZkVerifier(address(newVerifier));
+        token.setIdentityRegistry(address(newRegistry));
         vm.stopPrank();
     }
 
@@ -214,7 +215,9 @@ contract CLPcTest is Test {
         vm.startPrank(outsider);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.PAUSER_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                outsider,
+                token.PAUSER_ROLE()
             )
         );
         token.setMintingPaused(true);

@@ -1,24 +1,25 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.27;
 
-import "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {MockIdentityRegistry} from "../src/mocks/MockIdentityRegistry.sol";
 
 contract MockIdentityRegistryTest is Test {
   MockIdentityRegistry reg;
 
   address admin = address(0xA11CE);
-  address issuer = address(0x155UER);
+  address issuer = address(0x155E7);
   address user = address(0xB0B);
 
   function setUp() public {
     reg = new MockIdentityRegistry(admin);
 
-    vm.prank(admin);
+    vm.startPrank(admin);
     reg.grantRole(reg.ISSUER_ROLE(), issuer);
+    vm.stopPrank();
   }
 
-  function testAdminIsIssuerByDefault() public {
+  function testAdminIsIssuerByDefault() public view {
     assertTrue(reg.hasRole(reg.ISSUER_ROLE(), admin));
     assertTrue(reg.hasRole(reg.DEFAULT_ADMIN_ROLE(), admin));
   }
@@ -74,4 +75,3 @@ contract MockIdentityRegistryTest is Test {
     reg.setIdentity(address(0), true, true, true);
   }
 }
-
