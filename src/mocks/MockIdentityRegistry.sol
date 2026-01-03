@@ -2,13 +2,14 @@
 pragma solidity ^0.8.27;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {IIdentityRegistry} from "../IIdentityRegistry.sol";
 
 /**
  * @title MockIdentityRegistry
  * @notice Registro mock de atributos de identidad para PoC.
  *         Reemplazable más adelante por integración real (ZKPassport / issuer).
  */
-contract MockIdentityRegistry is AccessControl {
+contract MockIdentityRegistry is AccessControl, IIdentityRegistry {
     bytes32 public constant ISSUER_ROLE = keccak256("ISSUER_ROLE");
 
     struct Identity {
