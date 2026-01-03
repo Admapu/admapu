@@ -4,11 +4,11 @@ pragma solidity ^0.8.27;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
-import {IZKPassportVerifier} from "./IZKPassportVerifier.sol";
+import {IIdentityRegistry} from "./IIdentityRegistry.sol";
 
 /**
  * @title CLPc
- * @notice Stablecoin para ciudadanos chilenos verificados mediante Zero-Knowledge Proofs
+ * @notice Stablecoin para ciudadanos chilenos verificados (PoC)
  * @dev Token ERC20 con restricciones de transferencia basadas en verificación de identidad
  *
  * Características principales:
@@ -16,7 +16,7 @@ import {IZKPassportVerifier} from "./IZKPassportVerifier.sol";
  * - Sistema de roles para administración, minting y pausas
  * - Límite de mint anual para control de suministro
  * - Mint pausable para situaciones de emergencia
- * - Integración con verificador ZKPassport para validación de identidad
+ * - Integración con registry de identidad (mock hoy, ZKPassport real después)
  *
  * Roles:
  * - DEFAULT_ADMIN_ROLE: Administración general del contrato
@@ -41,8 +41,8 @@ contract CLPc is ERC20, AccessControl, Pausable {
 
     // ============ Variables de Estado ============
 
-    /// @notice Referencia al contrato verificador de ZKPassport
-    IZKPassportVerifier public zkVerifier;
+    /// @notice Referencia al registry de identidad (mock hoy; ZKPassport real después)
+    IIdentityRegistry public identityRegistry;
 
     /// @notice Año actual para tracking de límite anual
     uint256 public currentYear;
@@ -59,11 +59,11 @@ contract CLPc is ERC20, AccessControl, Pausable {
     // ============ Eventos ============
 
     /**
-     * @notice Emitido cuando se actualiza el verificador ZKPassport
-     * @param oldVerifier Dirección del verificador anterior
-     * @param newVerifier Dirección del nuevo verificador
+     * @notice Emitido cuando se actualiza el registry de identidad
+     * @param oldRegistry Dirección del registry anterior
+     * @param newRegistry Dirección del nuevo registry
      */
-    event ZKVerifierUpdated(address indexed oldVerifier, address indexed newVerifier);
+    event IdentityRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
 
     /**
      * @notice Emitido cuando se mintean tokens
@@ -100,14 +100,14 @@ contract CLPc is ERC20, AccessControl, Pausable {
 
     /**
      * @notice Constructor que inicializa el token CLPc
-     * @param _zkVerifier Dirección del contrato verificador ZKPassport
+     * @param _identityRegistry Dirección del registry de identidad
      * @param _admin Dirección que recibirá el rol de admin
      */
-    constructor(address _zkVerifier, address _admin) ERC20("Chilean Peso Coin", "CLPc") {
-        if (_zkVerifier == address(0)) revert ZeroAddress();
+    constructor(address _identityRegistry, address _admin) ERC20("Chilean Peso Coin", "CLPc") {
+        if (_identityRegistry == address(0)) revert ZeroAddress();
         if (_admin == address(0)) revert ZeroAddress();
 
-        zkVerifier = IZKPassportVerifier(_zkVerifier);
+        identityRegistry = IIdentityRegistry(_identityRegistry);
 
         // Configurar roles iniciales
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
@@ -124,17 +124,17 @@ contract CLPc is ERC20, AccessControl, Pausable {
     // ============ Funciones de Configuración ============
 
     /**
-     * @notice Actualiza el contrato verificador ZKPassport
-     * @param _newVerifier Nueva dirección del verificador
+     * @notice Actualiza el registry de identidad
+     * @param _newRegistry Nueva dirección del registry
      * @dev Solo puede ser llamado por DEFAULT_ADMIN_ROLE
      */
-    function setZkVerifier(address _newVerifier) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        if (_newVerifier == address(0)) revert ZeroAddress();
+    function setIdentityRegistry(address _newRegistry) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (_newRegistry == address(0)) revert ZeroAddress();
 
-        address oldVerifier = address(zkVerifier);
-        zkVerifier = IZKPassportVerifier(_newVerifier);
+        address oldRegistry = address(identityRegistry);
+        identityRegistry = IIdentityRegistry(_newRegistry);
 
-        emit ZKVerifierUpdated(oldVerifier, _newVerifier);
+        emit IdentityRegistryUpdated(oldRegistry, _newRegistry);
     }
 
     /**
@@ -162,7 +162,7 @@ contract CLPc is ERC20, AccessControl, Pausable {
         if (amount == 0) revert ZeroAmount();
 
         // Verificar que el destinatario esté verificado (excepto contratos de programa)
-        if (!hasRole(PROGRAM_ROLE, to) && !zkVerifier.isVerified(to)) {
+        if (!hasRole(PROGRAM_ROLE, to) && !identityRegistry.isVerifiedChilean(to)) {
             revert UnverifiedRecipient(to);
         }
 
@@ -208,7 +208,7 @@ contract CLPc is ERC20, AccessControl, Pausable {
             if (amount == 0) revert ZeroAmount();
 
             // Verificar destinatario
-            if (!hasRole(PROGRAM_ROLE, to) && !zkVerifier.isVerified(to)) {
+            if (!hasRole(PROGRAM_ROLE, to) && !identityRegistry.isVerifiedChilean(to)) {
                 revert UnverifiedRecipient(to);
             }
 
@@ -234,15 +234,15 @@ contract CLPc is ERC20, AccessControl, Pausable {
     // ============ Overrides de Transferencia ============
 
     /**
-     * @notice Override de _update para aplicar restricciones de verificación ZK
+     * @notice Override de _update para aplicar restricciones de verificación
      * @dev Valida que sender y recipient estén verificados antes de permitir transferencia
      */
     function _update(address from, address to, uint256 value) internal virtual override {
         // Permitir minting (from == address(0)) y burning (to == address(0))
         if (from != address(0) && to != address(0)) {
             // Verificar que ambas partes estén verificadas o sean contratos de programa
-            bool senderVerified = hasRole(PROGRAM_ROLE, from) || zkVerifier.isVerified(from);
-            bool recipientVerified = hasRole(PROGRAM_ROLE, to) || zkVerifier.isVerified(to);
+            bool senderVerified = hasRole(PROGRAM_ROLE, from) || identityRegistry.isVerifiedChilean(from);
+            bool recipientVerified = hasRole(PROGRAM_ROLE, to) || identityRegistry.isVerifiedChilean(to);
 
             if (!senderVerified) revert UnverifiedSender(from);
             if (!recipientVerified) revert UnverifiedRecipient(to);
@@ -267,7 +267,7 @@ contract CLPc is ERC20, AccessControl, Pausable {
      * @return bool true si la dirección puede recibir tokens
      */
     function canReceive(address account) external view returns (bool) {
-        return hasRole(PROGRAM_ROLE, account) || zkVerifier.isVerified(account);
+        return hasRole(PROGRAM_ROLE, account) || identityRegistry.isVerifiedChilean(account);
     }
 
     /**
