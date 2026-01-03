@@ -44,9 +44,7 @@ contract CLPcTest is Test {
     function testNonMinterCannotMint() public {
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                outsider,
-                token.MINTER_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.MINTER_ROLE()
             )
         );
         vm.prank(outsider);
@@ -202,9 +200,7 @@ contract CLPcTest is Test {
         vm.startPrank(outsider);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                outsider,
-                token.DEFAULT_ADMIN_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.DEFAULT_ADMIN_ROLE()
             )
         );
         token.setIdentityRegistry(address(newRegistry));
@@ -215,9 +211,7 @@ contract CLPcTest is Test {
         vm.startPrank(outsider);
         vm.expectRevert(
             abi.encodeWithSelector(
-                IAccessControl.AccessControlUnauthorizedAccount.selector,
-                outsider,
-                token.PAUSER_ROLE()
+                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.PAUSER_ROLE()
             )
         );
         token.setMintingPaused(true);
