@@ -19,7 +19,7 @@ contract MockIdentityRegistryTest is Test {
         vm.stopPrank();
     }
 
-    function testAdminIsIssuerByDefault() public view {
+    function testAdminIsIssuerByDefault() public {
         assertTrue(reg.hasRole(reg.ISSUER_ROLE(), admin));
         assertTrue(reg.hasRole(reg.DEFAULT_ADMIN_ROLE(), admin));
     }
