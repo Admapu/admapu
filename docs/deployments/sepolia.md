@@ -4,7 +4,7 @@ Fecha: 2026-01-04
 Red: Ethereum Sepolia  
 Chain ID: `11155111`
 
-Para la mayoría de las direcciones estoy usando [ENS](https://ens.domains/) y, para faciltiar su uso, recomiendo usar [Blockscout](https://eth-sepolia.blockscout.com) como explorador, ya que resuelve ENS automáticamente y EtherScan aun no soporta este feature en Sepolia.
+Para la mayoría de las direcciones estoy usando [ENS](https://ens.domains/) y, para faciltiar su uso, recomiendo usar [Blockscout](https://eth-sepolia.blockscout.com) como explorer ya que resuelve ENS automáticamente y EtherScan aun no soporta este feature en Sepolia.
 
 La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth).
 
@@ -84,7 +84,7 @@ Gating:
 
 ```bash
 export SEPOLIA_RPC_URL="..."
-export DEPLOYER_PK="0x..."   # llave del admin/deployer
+export DEPLOYER_PK="0x..."   # Private key del admin/deployer
 
 export ADMIN="0x7a64e4a47A4B1982bB1ab51D177a30E39f3B959A"
 export VERIFIER="0x3835D6a584aC858C5762AC81E53fE8c5E38a87b7"
