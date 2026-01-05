@@ -6,9 +6,9 @@ Chain ID: `11155111`
 
 Para la mayoría de las direcciones estoy usando [ENS](https://ens.domains/) y, para faciltiar su uso, recomiendo usar [Blockscout](https://eth-sepolia.blockscout.com) como explorer ya que resuelve ENS automáticamente y EtherScan aun no soporta este feature en Sepolia.
 
-La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth).
+La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y todas las direcciones y contratos de más abajo están configurados como [subnames](https://sepolia.app.ens.domains/admapu.eth?tab=subnames).
 
-## Direcciones (Sepolia)
+## Direcciones y Contratos
 
 **Admin / Deployer**
 - ENS: `admin.admapu.eth`
@@ -24,7 +24,7 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth).
 - Tx hash (deploy): `0x54ca0d6c0bdde0dd47898fc016c94cb66372c49ec804d21b9fd6052d9196809e`
 - Block: `9981114`
 
-## Etherscan
+## Blockscout links
 
 - Verifier: https://eth-sepolia.blockscout.com/address/0x3835D6a584aC858C5762AC81E53fE8c5E38a87b7
 - Token:    https://eth-sepolia.blockscout.com/address/0x39cFD0C6807568D68609E24A9907e5275Bd86379
