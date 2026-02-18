@@ -15,23 +15,34 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 - Address: `0x7a64e4a47A4B1982bB1ab51D177a30E39f3B959A`
 
 **Verifier (MockZKPassportVerifier)**
+- ENS: `mockzk.admapu.eth`
 - Address: `0x3835D6a584aC858C5762AC81E53fE8c5E38a87b7`
 - Tx hash (deploy): `0xbe1b84cd0dc05c7060268ef685fa98462f5b5fed3f8c7db60b10381f55b63030`
 - Block: `9981114`
 
 **Token (CLPc)**
+- ENS: `clpc.admapu.eth`
 - Address: `0x39cFD0C6807568D68609E24A9907e5275Bd86379`
 - Tx hash (deploy): `0x54ca0d6c0bdde0dd47898fc016c94cb66372c49ec804d21b9fd6052d9196809e`
 - Block: `9981114`
+
+**Claim (ClaimCLPc)**
+- ENS: `claimclpc.admapu.eth`
+- Address: `0x20F776Baa67E5476b664695c5bd6B5073Fa0a49C`
+- Tx hash (deploy): `0x6ccd3d65fab3c5b0328ebcc31ca189404f0f4985e6a933b42b16405c636a6691`
+- CLAIM_AMOUNT: `1000000000000`
+- Block: `9989836`
 
 ## Blockscout links
 
 - Verifier: https://eth-sepolia.blockscout.com/address/0x3835D6a584aC858C5762AC81E53fE8c5E38a87b7
 - Token:    https://eth-sepolia.blockscout.com/address/0x39cFD0C6807568D68609E24A9907e5275Bd86379
+- Claim:    https://eth-sepolia.blockscout.com/address/0x20F776Baa67E5476b664695c5bd6B5073Fa0a49C
 
 Txs:
 - Deploy Verifier: https://eth-sepolia.blockscout.com/tx/0xbe1b84cd0dc05c7060268ef685fa98462f5b5fed3f8c7db60b10381f55b63030
 - Deploy Token:    https://eth-sepolia.blockscout.com/tx/0x54ca0d6c0bdde0dd47898fc016c94cb66372c49ec804d21b9fd6052d9196809e
+- Deploy Claim:    https://eth-sepolia.blockscout.com/tx/0x6ccd3d65fab3c5b0328ebcc31ca189404f0f4985e6a933b42b16405c636a6691
 
 ## ABI: métodos expuestos
 
