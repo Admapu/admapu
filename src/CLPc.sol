@@ -39,6 +39,9 @@ contract CLPc is ERC20, AccessControl, Pausable {
     /// @notice Suministro máximo anual: 18 mil millones de tokens
     uint256 public constant MAX_ANNUAL_SUPPLY = 18_000_000_000 * 10 ** DECIMALS;
 
+    /// @notice Delay mínimo para ejecutar cambio de identity registry
+    uint256 public constant IDENTITY_REGISTRY_UPDATE_DELAY = 2 days;
+
     // ============ Variables de Estado ============
 
     /// @notice Referencia al registry de identidad (mock hoy; ZKPassport real después)
@@ -56,6 +59,12 @@ contract CLPc is ERC20, AccessControl, Pausable {
     /// @notice Flag para control de pausado de minting
     bool public mintingPaused;
 
+    /// @notice Registry pendiente de activación (timelock)
+    address public pendingIdentityRegistry;
+
+    /// @notice Timestamp mínimo para ejecutar el cambio pendiente
+    uint256 public pendingIdentityRegistryEta;
+
     // ============ Eventos ============
 
     /**
@@ -64,6 +73,18 @@ contract CLPc is ERC20, AccessControl, Pausable {
      * @param newRegistry Dirección del nuevo registry
      */
     event IdentityRegistryUpdated(address indexed oldRegistry, address indexed newRegistry);
+
+    /**
+     * @notice Emitido cuando se agenda un cambio de registry
+     * @param newRegistry Dirección propuesta
+     * @param executeAfter Timestamp mínimo de ejecución
+     */
+    event IdentityRegistryUpdateScheduled(address indexed newRegistry, uint256 executeAfter);
+
+    /**
+     * @notice Emitido cuando se cancela un cambio pendiente
+     */
+    event IdentityRegistryUpdateCancelled();
 
     /**
      * @notice Emitido cuando se mintean tokens
@@ -95,6 +116,8 @@ contract CLPc is ERC20, AccessControl, Pausable {
     error AnnualSupplyExceeded(uint256 requested, uint256 available);
     error ZeroAddress();
     error ZeroAmount();
+    error IdentityRegistryUpdateNotReady(uint256 executeAfter);
+    error NoPendingIdentityRegistryUpdate();
 
     // ============ Constructor ============
 
@@ -124,17 +147,50 @@ contract CLPc is ERC20, AccessControl, Pausable {
     // ============ Funciones de Configuración ============
 
     /**
-     * @notice Actualiza el registry de identidad
+     * @notice Agenda un cambio de registry de identidad (timelocked)
      * @param _newRegistry Nueva dirección del registry
      * @dev Solo puede ser llamado por DEFAULT_ADMIN_ROLE
      */
     function setIdentityRegistry(address _newRegistry) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_newRegistry == address(0)) revert ZeroAddress();
 
+        pendingIdentityRegistry = _newRegistry;
+        pendingIdentityRegistryEta = block.timestamp + IDENTITY_REGISTRY_UPDATE_DELAY;
+
+        emit IdentityRegistryUpdateScheduled(_newRegistry, pendingIdentityRegistryEta);
+    }
+
+    /**
+     * @notice Ejecuta el cambio de registry previamente agendado
+     * @dev Solo DEFAULT_ADMIN_ROLE, luego de cumplido el delay
+     */
+    function executeIdentityRegistryUpdate() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        address _newRegistry = pendingIdentityRegistry;
+        uint256 eta = pendingIdentityRegistryEta;
+
+        if (_newRegistry == address(0)) revert NoPendingIdentityRegistryUpdate();
+        if (block.timestamp < eta) revert IdentityRegistryUpdateNotReady(eta);
+
         address oldRegistry = address(identityRegistry);
         identityRegistry = IIdentityRegistry(_newRegistry);
 
+        pendingIdentityRegistry = address(0);
+        pendingIdentityRegistryEta = 0;
+
         emit IdentityRegistryUpdated(oldRegistry, _newRegistry);
+    }
+
+    /**
+     * @notice Cancela un cambio de registry pendiente
+     * @dev Solo DEFAULT_ADMIN_ROLE
+     */
+    function cancelIdentityRegistryUpdate() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (pendingIdentityRegistry == address(0)) revert NoPendingIdentityRegistryUpdate();
+
+        pendingIdentityRegistry = address(0);
+        pendingIdentityRegistryEta = 0;
+
+        emit IdentityRegistryUpdateCancelled();
     }
 
     /**
