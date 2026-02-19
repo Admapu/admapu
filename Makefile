@@ -3,38 +3,45 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
-USER ?=
+USER_ADDR ?=
+FROM_BLOCK ?= 9981114
 
 .PHONY: help
 
 .DEFAULT_GOAL := help
 
 ##@ User management
-whitelist-user: ## Verify a wallet as chilean-verified user. Requires USER env variable
-	@cast send "$(VERIFIER)" "verify(address)" "$(USER)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+whitelist-user: ## Verify a wallet as chilean-verified user. Requires USER_ADDR env variable
+	@cast send "$(VERIFIER)" "verify(address)" "$(USER_ADDR)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
 
-check-user: ## Check if a wallet is chilean-verified user. Requires USER env variable
-	@cast call "$(VERIFIER)" "isVerified(address)(bool)" "$(USER)" --rpc-url "$(SEPOLIA_RPC_URL)"
+check-user: ## Check if a wallet is chilean-verified user. Requires USER_ADDR env variable
+	@cast call "$(VERIFIER)" "isVerified(address)(bool)" "$(USER_ADDR)" --rpc-url "$(SEPOLIA_RPC_URL)"
 
-revoke-user: ## Revoke a wallet as chilean-verified user. Requires USER env variable
-	@cast send "$(VERIFIER)" "revoke(address)" "$(USER)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+revoke-user: ## Revoke a wallet as chilean-verified user. Requires USER_ADDR env variable
+	@cast send "$(VERIFIER)" "revoke(address)" "$(USER_ADDR)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+list-added: ## List verified wallets with block number. Requires FROM_BLOCK env variable
+	@cast logs --rpc-url "$(SEPOLIA_RPC_URL)" --address "$(VERIFIER)" --from-block "$(FROM_BLOCK)" --to-block latest --json "AddressVerified(address,uint256)" | jq -r '.[] | "\(.blockNumber), \(.topics[1] | sub("^0x000000000000000000000000";"0x"))"'
+
+list-revoked: ## List revoked wallets with block number. Requires FROM_BLOCK env variable
+	@cast logs --rpc-url "$(SEPOLIA_RPC_URL)" --address "$(VERIFIER)" --from-block "$(FROM_BLOCK)" --to-block latest --json "VerificationRevoked(address,uint256)" | jq -r '.[] | "\(.blockNumber), \(.topics[1] | sub("^0x000000000000000000000000";"0x"))"'
 
 ##@ Age range defintion
-set-age: ## Set age for a verified user. Requires USER env variable and age flags: over18, over65.
-	@cast send "$(VERIFIER)" "setAgeFlags(address,bool,bool)" "$(USER)" true false --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+set-age: ## Set age for a verified user. Requires USER_ADDR env variable and age flags: over18, over65.
+	@cast send "$(VERIFIER)" "setAgeFlags(address,bool,bool)" "$(USER_ADDR)" true false --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
 
-check-over18: ## Check if a verified user is over 18. Requires USER env variable
-	@cast call "$(VERIFIER)" "isOver18(address)(bool)" "$(USER)" --rpc-url "$(SEPOLIA_RPC_URL)"
+check-over18: ## Check if a verified user is over 18. Requires USER_ADDR env variable
+	@cast call "$(VERIFIER)" "isOver18(address)(bool)" "$(USER_ADDR)" --rpc-url "$(SEPOLIA_RPC_URL)"
 
-check-over65: ## Check if a verified user is over 65. Requires USER env variable
-	@cast call "$(VERIFIER)" "isOver65(address)(bool)" "$(USER)" --rpc-url "$(SEPOLIA_RPC_URL)"
+check-over65: ## Check if a verified user is over 65. Requires USER_ADDR env variable
+	@cast call "$(VERIFIER)" "isOver65(address)(bool)" "$(USER_ADDR)" --rpc-url "$(SEPOLIA_RPC_URL)"
 
 ##@ Mint status and token management
 check-status: ## Check if minting is paused or not. Result: true = paused, false = unpaused
 	@cast call "$(MINTER)" "mintingPaused()(bool)" --rpc-url "$(SEPOLIA_RPC_URL)"
 
 mint: ## Mint more CLPc tokens. Requires AMOUNT env variable, consider 8 decimals
-	@cast send "$(TOKEN)" "mint(address,uint256)" "$(USER)" "$(AMOUNT)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+	@cast send "$(TOKEN)" "mint(address,uint256)" "$(USER_ADDR)" "$(AMOUNT)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
 
 ##@ Token transfer
 send: ## Send CLPc tokens to a verified user. Both sender and receiver must be verified. Requires TO and AMOUNT env variables, consider 8 decimals
