@@ -3,6 +3,7 @@
 Fecha: 2026-02-23 (último redeploy)  
 Red: Ethereum Sepolia  
 Chain ID: `11155111`
+Block: `10320005`
 
 Para la mayoría de las direcciones estoy usando [ENS](https://ens.domains/) y, para faciltiar su uso, recomiendo usar [Blockscout](https://eth-sepolia.blockscout.com) como explorer ya que resuelve ENS automáticamente y EtherScan aun no soporta este feature en Sepolia.
 
@@ -19,6 +20,7 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 - Address: `0xD51F4F3D2c35E51FD4Fda03D4Ae8A251801C9c94`
 
 **IdentityRegistryAdapter**
+- ENS: `identity.admapu.eth`
 - Address: `0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21`
 
 **Token (CLPc)**
