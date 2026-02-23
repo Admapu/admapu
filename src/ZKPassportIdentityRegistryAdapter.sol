@@ -10,16 +10,16 @@ import {IZKPassportVerifier} from "./IZKPassportVerifier.sol";
  * @dev Permite que CLPc use `isVerifiedChilean(address)` sobre un verifier que expone `isVerified(address)`.
  */
 contract ZKPassportIdentityRegistryAdapter is IIdentityRegistry {
-    IZKPassportVerifier public immutable verifier;
+    IZKPassportVerifier public immutable VERIFIER;
 
     error ZeroAddress();
 
     constructor(address _verifier) {
         if (_verifier == address(0)) revert ZeroAddress();
-        verifier = IZKPassportVerifier(_verifier);
+        VERIFIER = IZKPassportVerifier(_verifier);
     }
 
     function isVerifiedChilean(address user) external view override returns (bool) {
-        return verifier.isVerified(user);
+        return VERIFIER.isVerified(user);
     }
 }
