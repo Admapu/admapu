@@ -50,6 +50,13 @@ Criterio de éxito:
 
 Una vez deployados los contratos, actualizar `.env` con direcciones nuevas (`TOKEN`, `VERIFIER`) y ejecutar checks básicos.
 
+### 3.0 Direcciones vigentes (Sepolia, deploy 2026-02-23)
+
+- `VERIFIER=0xD51F4F3D2c35E51FD4Fda03D4Ae8A251801C9c94`
+- `IDENTITY_REGISTRY_ADAPTER=0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21`
+- `TOKEN=0xfb43d4e4dBB4c444e7Dcd73A86e836EC7607f553`
+- `ADMIN=0x7a64e4a47A4B1982bB1ab51D177a30E39f3B959A`
+
 ### 3.1 Estado de minting
 
 ```bash
@@ -91,3 +98,4 @@ Si algún paso falla, **detener deploy** y corregir antes de avanzar.
 
 - Este runbook intencionalmente evita automatización (`smoke.sh`) para privilegiar una revisión manual explícita en cada release.
 - Para producción, complementar con controles adicionales (roles/permissions, eventos críticos, monitoreo y plan de rollback).
+- Si vas a usar flujo de claim, el contrato `ClaimCLPc` se deploya por separado y requiere configuración posterior (al menos `MINTER_ROLE` en `CLPc` para el address de claim).
