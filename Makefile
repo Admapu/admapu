@@ -5,6 +5,7 @@ endif
 
 USER_ADDR ?=
 FROM_BLOCK ?= 9981114
+MINTER ?= $(TOKEN)
 
 .PHONY: help
 
