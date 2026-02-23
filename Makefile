@@ -4,7 +4,7 @@ ifneq (,$(wildcard ./.env))
 endif
 
 USER_ADDR ?=
-FROM_BLOCK ?= 9981114
+FROM_BLOCK ?= 10320000
 
 .PHONY: help
 
@@ -21,9 +21,11 @@ revoke-user: ## Revoke a wallet as chilean-verified user. Requires USER_ADDR env
 	@cast send "$(VERIFIER)" "revoke(address)" "$(USER_ADDR)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
 
 list-added: ## List verified wallets with block number. Requires FROM_BLOCK env variable
+	@echo "BlockNumber, Address"
 	@cast logs --rpc-url "$(SEPOLIA_RPC_URL)" --address "$(VERIFIER)" --from-block "$(FROM_BLOCK)" --to-block latest --json "AddressVerified(address,uint256)" | jq -r '.[] | "\(.blockNumber), \(.topics[1] | sub("^0x000000000000000000000000";"0x"))"'
 
 list-revoked: ## List revoked wallets with block number. Requires FROM_BLOCK env variable
+	@echo "BlockNumber, Address"
 	@cast logs --rpc-url "$(SEPOLIA_RPC_URL)" --address "$(VERIFIER)" --from-block "$(FROM_BLOCK)" --to-block latest --json "VerificationRevoked(address,uint256)" | jq -r '.[] | "\(.blockNumber), \(.topics[1] | sub("^0x000000000000000000000000";"0x"))"'
 
 ##@ Age range defintion
