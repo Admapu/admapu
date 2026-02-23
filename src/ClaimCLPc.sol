@@ -5,19 +5,19 @@ interface ICLPcMinter {
     function mint(address to, uint256 amount) external;
 }
 
-interface IZKVerifierView {
-    function isVerified(address account) external view returns (bool);
+interface IIdentityRegistryView {
+    function isVerifiedChilean(address account) external view returns (bool);
 }
 
 /**
  * @title ClaimCLPc
  * @notice Permite a usuarios verificados reclamar un monto fijo una sola vez.
- * @dev Requiere que este contrato tenga MINTER_ROLE en CLPc.
+ * @dev Requiere que este contrato tenga MINTER_ROLE en CLPc y use la misma fuente de verdad de identidad que CLPc.
  */
 contract ClaimCLPc {
     // --- Config ---
     ICLPcMinter public immutable TOKEN;
-    IZKVerifierView public immutable VERIFIER;
+    IIdentityRegistryView public immutable IDENTITY_REGISTRY;
     uint256 public immutable CLAIM_AMOUNT;
 
     // --- Admin simple ---
@@ -49,12 +49,12 @@ contract ClaimCLPc {
         if (msg.sender != admin) revert NotAdmin();
     }
 
-    constructor(address _token, address _verifier, uint256 _claimAmount, address _admin) {
-        if (_token == address(0) || _verifier == address(0) || _admin == address(0)) revert ZeroAddress();
+    constructor(address _token, address _identityRegistry, uint256 _claimAmount, address _admin) {
+        if (_token == address(0) || _identityRegistry == address(0) || _admin == address(0)) revert ZeroAddress();
         if (_claimAmount == 0) revert ZeroAmount();
 
         TOKEN = ICLPcMinter(_token);
-        VERIFIER = IZKVerifierView(_verifier);
+        IDENTITY_REGISTRY = IIdentityRegistryView(_identityRegistry);
         CLAIM_AMOUNT = _claimAmount;
         admin = _admin;
     }
@@ -76,7 +76,7 @@ contract ClaimCLPc {
     function claim() external {
         if (paused) revert PausedError();
         if (claimed[msg.sender]) revert AlreadyClaimed(msg.sender);
-        if (!VERIFIER.isVerified(msg.sender)) revert NotVerified(msg.sender);
+        if (!IDENTITY_REGISTRY.isVerifiedChilean(msg.sender)) revert NotVerified(msg.sender);
 
         claimed[msg.sender] = true;
 
