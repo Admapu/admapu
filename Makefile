@@ -5,6 +5,9 @@ endif
 
 USER_ADDR ?=
 FROM_BLOCK ?= 10320000
+MINTER ?= $(TOKEN)
+FORWARDER ?=
+USER_PK ?=
 
 .PHONY: help
 
@@ -48,6 +51,44 @@ mint: ## Mint more CLPc tokens. Requires AMOUNT env variable, consider 8 decimal
 ##@ Token transfer
 send: ## Send CLPc tokens to a verified user. Both sender and receiver must be verified. Requires TO and AMOUNT env variables, consider 8 decimals
 	@cast send "$(TOKEN)" "transfer(address,uint256)" "$(TO)" "$(AMOUNT)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(FROM_PK)"
+
+##@ Claim operations
+check-claim: ## Check if USER_ADDR already claimed. Requires USER_ADDR env variable
+	@cast call "$(CLAIM)" "claimed(address)(bool)" "$(USER_ADDR)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+check-claim-amount: ## Show fixed claim amount from ClaimCLPc
+	@cast call "$(CLAIM)" "CLAIM_AMOUNT()(uint256)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+claim-direct: ## Claim as USER_PK (user pays gas). Requires USER_PK env variable
+	@cast send "$(CLAIM)" "claim()" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(USER_PK)"
+
+grant-claim-minter: ## Grant MINTER_ROLE on TOKEN to CLAIM using DEPLOYER_PK
+	@MINTER_ROLE=$$(cast call "$(TOKEN)" "MINTER_ROLE()(bytes32)" --rpc-url "$(SEPOLIA_RPC_URL)"); \
+	cast send "$(TOKEN)" "grantRole(bytes32,address)" "$$MINTER_ROLE" "$(CLAIM)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+check-claim-minter: ## Check if CLAIM has MINTER_ROLE on TOKEN
+	@MINTER_ROLE=$$(cast call "$(TOKEN)" "MINTER_ROLE()(bytes32)" --rpc-url "$(SEPOLIA_RPC_URL)"); \
+	cast call "$(TOKEN)" "hasRole(bytes32,address)(bool)" "$$MINTER_ROLE" "$(CLAIM)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+check-claim-config: ## Show Claim wiring against Token identity registry
+	@echo "CLAIM.TOKEN               = $$(cast call "$(CLAIM)" "TOKEN()(address)" --rpc-url "$(SEPOLIA_RPC_URL)")"; \
+	echo "TOKEN (env)               = $(TOKEN)"; \
+	echo "CLAIM.IDENTITY_REGISTRY   = $$(cast call "$(CLAIM)" "IDENTITY_REGISTRY()(address)" --rpc-url "$(SEPOLIA_RPC_URL)")"; \
+	echo "TOKEN.identityRegistry    = $$(cast call "$(TOKEN)" "identityRegistry()(address)" --rpc-url "$(SEPOLIA_RPC_URL)")"; \
+	echo "CLAIM_AMOUNT              = $$(cast call "$(CLAIM)" "CLAIM_AMOUNT()(uint256)" --rpc-url "$(SEPOLIA_RPC_URL)")"
+
+##@ Meta-transactions (ERC-2771)
+set-forwarder: ## Set trusted forwarder in ClaimCLPc. Requires FORWARDER env variable
+	@cast send "$(CLAIM)" "setTrustedForwarder(address)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+check-forwarder: ## Show trusted forwarder configured in ClaimCLPc
+	@cast call "$(CLAIM)" "trustedForwarder()(address)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+check-forwarder-match: ## Check if FORWARDER is trusted in ClaimCLPc. Requires FORWARDER env variable
+	@cast call "$(CLAIM)" "isTrustedForwarder(address)(bool)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+claim-calldata: ## Print calldata for claim() (useful for relayer requests)
+	@cast calldata "claim()"
 
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} \

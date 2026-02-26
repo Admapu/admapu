@@ -29,14 +29,19 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 
 **Claim (ClaimCLPc)**
 - ENS: `claimclpc.admapu.eth`
-- Address: `0xe1c2dB0ea79f8b91991aC789E32A35E39D7d1fF7`
+- Address: `0x61a8e1725Bb5187CF35Bc1A682Ce55b77E68016b`
+
+**Forwarder (ERC2771Forwarder)**
+- ENS: *(opcional, recomendado)*
+- Address: `0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e`
 
 ## Blockscout links
 
 - Verifier: https://eth-sepolia.blockscout.com/address/0xD51F4F3D2c35E51FD4Fda03D4Ae8A251801C9c94
 - IdentityRegistryAdapter: https://eth-sepolia.blockscout.com/address/0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21
 - Token:    https://eth-sepolia.blockscout.com/address/0xfb43d4e4dBB4c444e7Dcd73A86e836EC7607f553
-- Claim:    https://eth-sepolia.blockscout.com/address/0xe1c2dB0ea79f8b91991aC789E32A35E39D7d1fF7
+- Claim:    https://eth-sepolia.blockscout.com/address/0x61a8e1725Bb5187CF35Bc1A682Ce55b77E68016b
+- Forwarder: https://eth-sepolia.blockscout.com/address/0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e
 
 ## ABI: métodos expuestos
 
@@ -95,5 +100,78 @@ export ADMIN="0x7a64e4a47A4B1982bB1ab51D177a30E39f3B959A"
 export VERIFIER="0xD51F4F3D2c35E51FD4Fda03D4Ae8A251801C9c94"
 export IDENTITY_REGISTRY_ADAPTER="0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21"
 export TOKEN="0xfb43d4e4dBB4c444e7Dcd73A86e836EC7607f553"
-export CLAIM="0xe1c2dB0ea79f8b91991aC789E32A35E39D7d1fF7"
+export CLAIM="0x61a8e1725Bb5187CF35Bc1A682Ce55b77E68016b"
+export FORWARDER="0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e"
 ```
+
+## Flujo de mint vía claim
+
+El mint de CLPc no sale de un "pool precargado". Se emite al momento del claim.
+
+Resumen del flujo:
+1. El usuario (verificado) ejecuta `claim()` directo o firma una meta-tx.
+2. `ClaimCLPc` valida:
+   - `paused == false`
+   - `claimed[user] == false`
+   - `IDENTITY_REGISTRY.isVerifiedChilean(user) == true`
+3. Si pasa validaciones, `ClaimCLPc` llama `CLPc.mint(user, CLAIM_AMOUNT)`.
+4. `CLPc` solo permite ese `mint` si `ClaimCLPc` tiene `MINTER_ROLE`.
+
+Checks mínimos:
+
+```bash
+# Claim está habilitado
+cast call "$CLAIM" "paused()(bool)" --rpc-url "$SEPOLIA_RPC_URL"
+
+# Usuario aún no reclamó
+cast call "$CLAIM" "claimed(address)(bool)" "$USER_ADDR" --rpc-url "$SEPOLIA_RPC_URL"
+
+# Claim tiene rol minter en token
+MINTER_ROLE=$(cast call "$TOKEN" "MINTER_ROLE()(bytes32)" --rpc-url "$SEPOLIA_RPC_URL")
+cast call "$TOKEN" "hasRole(bytes32,address)(bool)" "$MINTER_ROLE" "$CLAIM" --rpc-url "$SEPOLIA_RPC_URL"
+```
+
+### Meta-tx (ERC-2771)
+
+Para que el usuario no pague gas:
+- El usuario firma typed-data.
+- El relayer envía `forwarder.execute(...)` y paga gas.
+- `ClaimCLPc` debe confiar en ese forwarder.
+
+```bash
+# Forwarder confiable configurado en Claim
+cast call "$CLAIM" "trustedForwarder()(address)" --rpc-url "$SEPOLIA_RPC_URL"
+cast call "$CLAIM" "isTrustedForwarder(address)(bool)" "$FORWARDER" --rpc-url "$SEPOLIA_RPC_URL"
+```
+
+## Verificación de supply actual y cupo disponible
+
+`CLPc` usa límite anual de emisión. Comandos útiles:
+
+```bash
+# supply emitido total (circulante emitido por mint)
+cast call "$TOKEN" "totalSupply()(uint256)" --rpc-url "$SEPOLIA_RPC_URL"
+
+# cupo disponible para seguir minteando este año
+cast call "$TOKEN" "availableToMint()(uint256)" --rpc-url "$SEPOLIA_RPC_URL"
+
+# límite anual y uso acumulado del año actual
+cast call "$TOKEN" "MAX_ANNUAL_SUPPLY()(uint256)" --rpc-url "$SEPOLIA_RPC_URL"
+cast call "$TOKEN" "mintedThisYear()(uint256)" --rpc-url "$SEPOLIA_RPC_URL"
+cast call "$TOKEN" "currentYear()(uint16)" --rpc-url "$SEPOLIA_RPC_URL"
+```
+
+Si quieres verlo en unidades CLPc (8 decimales), divide por `1e8`.
+
+## Ver transacciones en explorer
+
+Sí, se puede ver todo en Sepolia explorer:
+
+- Etherscan (address txs):  
+  `https://sepolia.etherscan.io/address/<ADDRESS>#txns`
+- Blockscout (address txs):  
+  `https://eth-sepolia.blockscout.com/address/<ADDRESS>?tab=txs`
+
+Para `TOKEN`, también puedes revisar transferencias ERC-20:
+- Etherscan: `.../address/<TOKEN>#tokentxns`
+- Blockscout: `.../address/<TOKEN>?tab=token_transfers`
