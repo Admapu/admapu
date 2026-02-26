@@ -23,6 +23,7 @@ contract ClaimCLPc {
     // --- Admin simple ---
     address public admin;
     bool public paused;
+    address public trustedForwarder;
 
     // --- State ---
     mapping(address => bool) public claimed;
@@ -31,6 +32,7 @@ contract ClaimCLPc {
     event Claimed(address indexed user, uint256 amount);
     event Paused(bool paused);
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
+    event TrustedForwarderUpdated(address indexed oldForwarder, address indexed newForwarder);
 
     // --- Errors ---
     error NotAdmin();
@@ -46,7 +48,7 @@ contract ClaimCLPc {
     }
 
     function _onlyAdmin() internal view {
-        if (msg.sender != admin) revert NotAdmin();
+        if (_msgSender() != admin) revert NotAdmin();
     }
 
     constructor(address _token, address _identityRegistry, uint256 _claimAmount, address _admin) {
@@ -71,19 +73,48 @@ contract ClaimCLPc {
     }
 
     /**
+     * @notice Configura el trusted forwarder para meta-transacciones ERC-2771.
+     * @dev Solo admin. Usar address(0) para deshabilitar meta-txs.
+     */
+    function setTrustedForwarder(address _trustedForwarder) external onlyAdmin {
+        emit TrustedForwarderUpdated(trustedForwarder, _trustedForwarder);
+        trustedForwarder = _trustedForwarder;
+    }
+
+    /**
+     * @notice Verifica si una dirección es el trusted forwarder actual.
+     */
+    function isTrustedForwarder(address forwarder) external view returns (bool) {
+        return forwarder == trustedForwarder;
+    }
+
+    /**
      * @notice Reclama CLPc una sola vez (solo para usuarios verificados).
      */
     function claim() external {
+        address sender = _msgSender();
+
         if (paused) revert PausedError();
-        if (claimed[msg.sender]) revert AlreadyClaimed(msg.sender);
-        if (!IDENTITY_REGISTRY.isVerifiedChilean(msg.sender)) revert NotVerified(msg.sender);
+        if (claimed[sender]) revert AlreadyClaimed(sender);
+        if (!IDENTITY_REGISTRY.isVerifiedChilean(sender)) revert NotVerified(sender);
 
-        claimed[msg.sender] = true;
+        claimed[sender] = true;
 
-        // CLPc.mint() verificará también que msg.sender esté verificado (lo está)
-        TOKEN.mint(msg.sender, CLAIM_AMOUNT);
+        TOKEN.mint(sender, CLAIM_AMOUNT);
 
-        emit Claimed(msg.sender, CLAIM_AMOUNT);
+        emit Claimed(sender, CLAIM_AMOUNT);
+    }
+
+    /**
+     * @dev Devuelve el sender original si la llamada llega desde trustedForwarder.
+     */
+    function _msgSender() internal view returns (address sender) {
+        if (msg.sender == trustedForwarder && msg.data.length >= 20) {
+            assembly ("memory-safe") {
+                sender := shr(96, calldataload(sub(calldatasize(), 20)))
+            }
+        } else {
+            sender = msg.sender;
+        }
     }
 }
-
