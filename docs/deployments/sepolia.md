@@ -175,3 +175,94 @@ Sí, se puede ver todo en Sepolia explorer:
 Para `TOKEN`, también puedes revisar transferencias ERC-20:
 - Etherscan: `.../address/<TOKEN>#tokentxns`
 - Blockscout: `.../address/<TOKEN>?tab=token_transfers`
+
+## Verificación de contratos (source verification)
+
+Estado actual en Blockscout (Sepolia):
+- `MockZKPassportVerifier` (`VERIFIER`): verificado
+- `ZKPassportIdentityRegistryAdapter` (`IDENTITY_REGISTRY_ADAPTER`): verificado
+- `CLPc` (`TOKEN`): verificado
+- `ClaimCLPc` (`CLAIM`): verificado
+- `ERC2771Forwarder` (`FORWARDER`): verificado
+
+### Comandos de verificación (Foundry + Blockscout)
+
+```bash
+export BS_API="https://eth-sepolia.blockscout.com/api/"
+export ETHERSCAN_API_KEY="blockscout"
+```
+
+Verifier:
+
+```bash
+forge verify-contract "$VERIFIER" src/mocks/MockZKPassportVerifier.sol:MockZKPassportVerifier \
+  --chain-id 11155111 \
+  --verifier blockscout \
+  --verifier-url "$BS_API" \
+  --etherscan-api-key "$ETHERSCAN_API_KEY"
+```
+
+Identity Registry Adapter:
+
+```bash
+ARGS_ADAPTER=$(cast abi-encode "constructor(address)" "$VERIFIER")
+forge verify-contract "$IDENTITY_REGISTRY_ADAPTER" src/ZKPassportIdentityRegistryAdapter.sol:ZKPassportIdentityRegistryAdapter \
+  --chain-id 11155111 \
+  --constructor-args "$ARGS_ADAPTER" \
+  --verifier blockscout \
+  --verifier-url "$BS_API" \
+  --etherscan-api-key "$ETHERSCAN_API_KEY"
+```
+
+Token `CLPc`:
+
+```bash
+ARGS_TOKEN=$(cast abi-encode "constructor(address,address)" "$IDENTITY_REGISTRY_ADAPTER" "$ADMIN")
+forge verify-contract "$TOKEN" src/CLPc.sol:CLPc \
+  --chain-id 11155111 \
+  --constructor-args "$ARGS_TOKEN" \
+  --verifier blockscout \
+  --verifier-url "$BS_API" \
+  --etherscan-api-key "$ETHERSCAN_API_KEY"
+```
+
+Claim `ClaimCLPc`:
+
+```bash
+CLAIM_AMOUNT=$(cast call "$CLAIM" "CLAIM_AMOUNT()(uint256)" --rpc-url "$SEPOLIA_RPC_URL" | awk '{print $1}')
+CLAIM_ADMIN=$(cast call "$CLAIM" "admin()(address)" --rpc-url "$SEPOLIA_RPC_URL")
+ARGS_CLAIM=$(cast abi-encode "constructor(address,address,uint256,address)" "$TOKEN" "$IDENTITY_REGISTRY_ADAPTER" "$CLAIM_AMOUNT" "$CLAIM_ADMIN")
+
+forge verify-contract "$CLAIM" src/ClaimCLPc.sol:ClaimCLPc \
+  --chain-id 11155111 \
+  --constructor-args "$ARGS_CLAIM" \
+  --verifier blockscout \
+  --verifier-url "$BS_API" \
+  --etherscan-api-key "$ETHERSCAN_API_KEY"
+```
+
+Forwarder `ERC2771Forwarder`:
+
+```bash
+ARGS_FWD=$(cast abi-encode "constructor(string)" "AdmapuForwarder")
+
+# Nota: se usa FOUNDRY_SRC=. para resolver correctamente la ruta en lib/openzeppelin-contracts
+FOUNDRY_SRC=. forge verify-contract "$FORWARDER" lib/openzeppelin-contracts/contracts/metatx/ERC2771Forwarder.sol:ERC2771Forwarder \
+  --chain-id 11155111 \
+  --constructor-args "$ARGS_FWD" \
+  --verifier blockscout \
+  --verifier-url "$BS_API" \
+  --etherscan-api-key "$ETHERSCAN_API_KEY"
+```
+
+### Revisar estado de verificación
+
+Si `forge verify-contract` retorna `GUID`, puedes consultar el estado con:
+
+```bash
+forge verify-check "<GUID>" \
+  --chain-id 11155111 \
+  --verifier blockscout \
+  --verifier-url "$BS_API" \
+  --etherscan-api-key "$ETHERSCAN_API_KEY"
+```
