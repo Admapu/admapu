@@ -8,6 +8,13 @@ FROM_BLOCK ?= 10320000
 MINTER ?= $(TOKEN)
 FORWARDER ?=
 USER_PK ?=
+TX_GAS_LIMIT ?=
+TX_MAX_FEE ?=
+TX_PRIORITY_FEE ?=
+
+TX_FEE_OPTS := $(if $(TX_GAS_LIMIT),--gas-limit "$(TX_GAS_LIMIT)",) \
+	$(if $(TX_MAX_FEE),--gas-price "$(TX_MAX_FEE)",) \
+	$(if $(TX_PRIORITY_FEE),--priority-gas-price "$(TX_PRIORITY_FEE)",)
 
 .PHONY: help
 
@@ -50,7 +57,7 @@ mint: ## Mint more CLPc tokens. Requires AMOUNT env variable, consider 8 decimal
 
 ##@ Token transfer
 send: ## Send CLPc tokens to a verified user. Both sender and receiver must be verified. Requires TO and AMOUNT env variables, consider 8 decimals
-	@cast send "$(TOKEN)" "transfer(address,uint256)" "$(TO)" "$(AMOUNT)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(FROM_PK)"
+	@cast send "$(TOKEN)" "transfer(address,uint256)" "$(TO)" "$(AMOUNT)" $(TX_FEE_OPTS) --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(FROM_PK)"
 
 ##@ Claim operations
 check-claim: ## Check if USER_ADDR already claimed. Requires USER_ADDR env variable
@@ -60,7 +67,7 @@ check-claim-amount: ## Show fixed claim amount from ClaimCLPc
 	@cast call "$(CLAIM)" "CLAIM_AMOUNT()(uint256)" --rpc-url "$(SEPOLIA_RPC_URL)"
 
 claim-direct: ## Claim as USER_PK (user pays gas). Requires USER_PK env variable
-	@cast send "$(CLAIM)" "claim()" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(USER_PK)"
+	@cast send "$(CLAIM)" "claim()" $(TX_FEE_OPTS) --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(USER_PK)"
 
 grant-claim-minter: ## Grant MINTER_ROLE on TOKEN to CLAIM using DEPLOYER_PK
 	@MINTER_ROLE=$$(cast call "$(TOKEN)" "MINTER_ROLE()(bytes32)" --rpc-url "$(SEPOLIA_RPC_URL)"); \
