@@ -65,6 +65,9 @@ contract CLPc is ERC20, AccessControl, Pausable {
     /// @notice Timestamp mínimo para ejecutar el cambio pendiente
     uint256 public pendingIdentityRegistryEta;
 
+    /// @notice Trusted forwarder para meta-txs ERC-2771
+    address public trustedForwarder;
+
     // ============ Eventos ============
 
     /**
@@ -85,6 +88,13 @@ contract CLPc is ERC20, AccessControl, Pausable {
      * @notice Emitido cuando se cancela un cambio pendiente
      */
     event IdentityRegistryUpdateCancelled();
+
+    /**
+     * @notice Emitido cuando se actualiza el trusted forwarder
+     * @param oldForwarder Forwarder anterior
+     * @param newForwarder Nuevo forwarder
+     */
+    event TrustedForwarderUpdated(address indexed oldForwarder, address indexed newForwarder);
 
     /**
      * @notice Emitido cuando se mintean tokens
@@ -191,6 +201,22 @@ contract CLPc is ERC20, AccessControl, Pausable {
         pendingIdentityRegistryEta = 0;
 
         emit IdentityRegistryUpdateCancelled();
+    }
+
+    /**
+     * @notice Configura el trusted forwarder para meta-transacciones ERC-2771.
+     * @dev Solo DEFAULT_ADMIN_ROLE. Usar address(0) para deshabilitar meta-txs.
+     */
+    function setTrustedForwarder(address _trustedForwarder) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        emit TrustedForwarderUpdated(trustedForwarder, _trustedForwarder);
+        trustedForwarder = _trustedForwarder;
+    }
+
+    /**
+     * @notice Verifica si una dirección es el trusted forwarder actual.
+     */
+    function isTrustedForwarder(address forwarder) external view returns (bool) {
+        return forwarder == trustedForwarder;
     }
 
     /**
@@ -402,5 +428,27 @@ contract CLPc is ERC20, AccessControl, Pausable {
     function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
-}
 
+    /**
+     * @dev Devuelve el sender original si la llamada llega desde trustedForwarder.
+     */
+    function _msgSender() internal view virtual override returns (address sender) {
+        if (msg.sender == trustedForwarder && msg.data.length >= 20) {
+            assembly ("memory-safe") {
+                sender := shr(96, calldataload(sub(calldatasize(), 20)))
+            }
+        } else {
+            sender = msg.sender;
+        }
+    }
+
+    /**
+     * @dev Devuelve calldata sin los últimos 20 bytes cuando viene desde trustedForwarder.
+     */
+    function _msgData() internal view virtual override returns (bytes calldata) {
+        if (msg.sender == trustedForwarder && msg.data.length >= 20) {
+            return msg.data[:msg.data.length - 20];
+        }
+        return msg.data;
+    }
+}
