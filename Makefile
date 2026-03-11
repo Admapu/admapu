@@ -94,6 +94,18 @@ check-forwarder: ## Show trusted forwarder configured in ClaimCLPc
 check-forwarder-match: ## Check if FORWARDER is trusted in ClaimCLPc. Requires FORWARDER env variable
 	@cast call "$(CLAIM)" "isTrustedForwarder(address)(bool)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)"
 
+set-token-forwarder: ## Set trusted forwarder in CLPc token. Requires FORWARDER env variable
+	@cast send "$(TOKEN)" "setTrustedForwarder(address)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+check-token-forwarder: ## Show trusted forwarder configured in CLPc token
+	@cast call "$(TOKEN)" "trustedForwarder()(address)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+check-token-forwarder-match: ## Check if FORWARDER is trusted in CLPc token. Requires FORWARDER env variable
+	@cast call "$(TOKEN)" "isTrustedForwarder(address)(bool)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+send-calldata: ## Print calldata for transfer(address,uint256). Requires TO and AMOUNT env variables
+	@cast calldata "transfer(address,uint256)" "$(TO)" "$(AMOUNT)"
+
 claim-calldata: ## Print calldata for claim() (useful for relayer requests)
 	@cast calldata "claim()"
 
