@@ -18,6 +18,7 @@ contract CLPcTest is Test {
     address private sender = address(0xABCD);
     address private unverified = address(0xF00D);
     address private recipient2 = address(0xCAFE2);
+    address private forwarder = address(0xF0A2);
 
     function setUp() public {
         // Jan 1, 2025 00:00:00 UTC
@@ -144,6 +145,48 @@ contract CLPcTest is Test {
         assertEq(revertData, abi.encodeWithSelector(CLPc.UnverifiedSender.selector, sender));
     }
 
+    function testForwardedTransferSucceedsWhenBothVerified() public {
+        registry.setVerifiedChilean(sender, true);
+        token.setTrustedForwarder(forwarder);
+
+        uint256 amount = 100 * 10 ** token.decimals();
+        token.mint(sender, amount);
+
+        bytes memory transferCall = abi.encodeWithSelector(token.transfer.selector, recipient, amount / 2);
+        bytes memory forwardedCall = abi.encodePacked(transferCall, bytes20(sender));
+
+        vm.prank(forwarder);
+        (bool ok, bytes memory returnData) = address(token).call(forwardedCall);
+
+        assertTrue(ok);
+        assertTrue(abi.decode(returnData, (bool)));
+        assertEq(token.balanceOf(sender), amount / 2);
+        assertEq(token.balanceOf(recipient), amount / 2);
+    }
+
+    function testNonTrustedForwarderCannotSpoofSender() public {
+        registry.setVerifiedChilean(sender, true);
+        token.setTrustedForwarder(forwarder);
+
+        uint256 amount = 100 * 10 ** token.decimals();
+        token.mint(sender, amount);
+
+        bytes memory transferCall = abi.encodeWithSelector(token.transfer.selector, recipient, 1);
+        bytes memory spoofedCall = abi.encodePacked(transferCall, bytes20(sender));
+
+        vm.prank(outsider);
+        (bool ok, bytes memory revertData) = address(token).call(spoofedCall);
+
+        assertFalse(ok);
+        assertEq(revertData, abi.encodeWithSelector(CLPc.UnverifiedSender.selector, outsider));
+    }
+
+    function testAdminCanSetTrustedForwarder() public {
+        token.setTrustedForwarder(forwarder);
+        assertEq(token.trustedForwarder(), forwarder);
+        assertTrue(token.isTrustedForwarder(forwarder));
+    }
+
     function testMintBatchMismatchedArraysReverts() public {
         address[] memory recipients = new address[](1);
         recipients[0] = recipient;
@@ -215,6 +258,17 @@ contract CLPcTest is Test {
             )
         );
         token.setMintingPaused(true);
+        vm.stopPrank();
+    }
+
+    function testNonAdminCannotSetTrustedForwarder() public {
+        vm.startPrank(outsider);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.DEFAULT_ADMIN_ROLE()
+            )
+        );
+        token.setTrustedForwarder(forwarder);
         vm.stopPrank();
     }
 }

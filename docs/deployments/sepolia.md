@@ -136,12 +136,16 @@ cast call "$TOKEN" "hasRole(bytes32,address)(bool)" "$MINTER_ROLE" "$CLAIM" --rp
 Para que el usuario no pague gas:
 - El usuario firma typed-data.
 - El relayer envía `forwarder.execute(...)` y paga gas.
-- `ClaimCLPc` debe confiar en ese forwarder.
+- `ClaimCLPc` y `CLPc` deben confiar en ese forwarder.
 
 ```bash
 # Forwarder confiable configurado en Claim
 cast call "$CLAIM" "trustedForwarder()(address)" --rpc-url "$SEPOLIA_RPC_URL"
 cast call "$CLAIM" "isTrustedForwarder(address)(bool)" "$FORWARDER" --rpc-url "$SEPOLIA_RPC_URL"
+
+# Forwarder confiable configurado en Token (para transfer gasless)
+cast call "$TOKEN" "trustedForwarder()(address)" --rpc-url "$SEPOLIA_RPC_URL"
+cast call "$TOKEN" "isTrustedForwarder(address)(bool)" "$FORWARDER" --rpc-url "$SEPOLIA_RPC_URL"
 ```
 
 ## Verificación de supply actual y cupo disponible
