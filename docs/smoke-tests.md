@@ -76,7 +76,8 @@ Esperado: responde `true|false` (pausado/no pausado), sin error RPC.
 ### 3.2 Verificación de usuario
 
 ```bash
-USER_ADDR=0x... make check-user
+export USER_ADDR="0x..."
+make check-user
 ```
 
 ### 3.3 Wiring mínimo post-deploy
@@ -97,12 +98,14 @@ FORWARDER="$FORWARDER" make check-token-forwarder-match
 Esperado:
 - `CLAIM` tiene `MINTER_ROLE` en `TOKEN`.
 - `ClaimCLPc` y `CLPc` confían en el mismo `FORWARDER`.
+- Antes de `grant-claim-minter`, el check de minter puede devolver `false`. Eso es esperado.
 
 ### 3.4 (PoC con mock) Marcar usuario verificado y re-validar
 
 ```bash
-USER_ADDR=0x... make whitelist-user
-USER_ADDR=0x... make check-user
+export USER_ADDR="0x..."
+make whitelist-user
+make check-user
 ```
 
 Esperado:
