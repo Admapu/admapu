@@ -216,9 +216,13 @@ Checks mínimos:
 cast call "$CLAIM" "paused()(bool)" --rpc-url "$SEPOLIA_RPC_URL"
 
 # Usuario aún no reclamó
+# Nota: en zsh/bash, exporta USER_ADDR antes o pasa el address literal.
+export USER_ADDR="0x..."
 cast call "$CLAIM" "claimed(address)(bool)" "$USER_ADDR" --rpc-url "$SEPOLIA_RPC_URL"
 
 # Claim tiene rol minter en token
+# Este check solo da `true` después de ejecutar `make grant-claim-minter`
+# en el wiring post-deploy.
 MINTER_ROLE=$(cast call "$TOKEN" "MINTER_ROLE()(bytes32)" --rpc-url "$SEPOLIA_RPC_URL")
 cast call "$TOKEN" "hasRole(bytes32,address)(bool)" "$MINTER_ROLE" "$CLAIM" --rpc-url "$SEPOLIA_RPC_URL"
 ```
