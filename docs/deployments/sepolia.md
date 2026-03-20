@@ -17,23 +17,23 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 
 **Verifier (MockZKPassportVerifier)**
 - ENS: `mockzk.admapu.eth`
-- Address: `0xD51F4F3D2c35E51FD4Fda03D4Ae8A251801C9c94`
+- Address: `0xcD59e6A78087BEA67a070b92bD7d8ff9d24a2647`
 
 **IdentityRegistryAdapter**
 - ENS: `identity.admapu.eth`
-- Address: `0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21`
+- Address: `0x0Ae1e5Dc605A88C6CD9A032C0b9C567406DBa98f`
 
 **Token (CLPc)**
 - ENS: `clpc.admapu.eth`
-- Address: `0xfb43d4e4dBB4c444e7Dcd73A86e836EC7607f553`
+- Address: `0x889679fC04063Bd8706f5c2e5de26E3554FFFCa5`
 
 **Claim (ClaimCLPc)**
 - ENS: `claimclpc.admapu.eth`
-- Address: `0x61a8e1725Bb5187CF35Bc1A682Ce55b77E68016b`
+- Address: `0x2E4F7D60AA4416ead3610bD0f90c80277A8D95BD`
 
 **Forwarder (ERC2771Forwarder)**
 - ENS: *(opcional, recomendado)*
-- Address: `0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e`
+- Address: `0xE86e8FaF0b4c69C95BDdb495D51F94e2E7Be8Dfd`
 
 ## Blockscout links
 
@@ -95,7 +95,14 @@ Gating:
 ```bash
 export SEPOLIA_RPC_URL="..."
 export DEPLOYER_PK="0x..."   # Private key del admin/deployer
+export ADMIN=$(cast wallet address --private-key "$DEPLOYER_PK")
+export CLAIM_AMOUNT="..."    # Monto fijo del claim, considerar 8 decimales
+export FORWARDER_NAME="AdmapuForwarder"
+```
 
+Si quieres interactuar con el despliegue vigente documentado arriba, exporta además:
+
+```bash
 export ADMIN="0x7a64e4a47A4B1982bB1ab51D177a30E39f3B959A"
 export VERIFIER="0xD51F4F3D2c35E51FD4Fda03D4Ae8A251801C9c94"
 export IDENTITY_REGISTRY_ADAPTER="0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21"
@@ -103,6 +110,91 @@ export TOKEN="0xfb43d4e4dBB4c444e7Dcd73A86e836EC7607f553"
 export CLAIM="0x61a8e1725Bb5187CF35Bc1A682Ce55b77E68016b"
 export FORWARDER="0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e"
 ```
+
+## Redeploy reproducible del código actual
+
+El flujo soportado por el repo hoy es:
+1. Deploy base con `script/Deploy.s.sol`
+2. Deploy de `ClaimCLPc` con `script/DeployClaim.s.sol`
+3. Deploy de `ERC2771Forwarder` con `script/DeployForwarder.s.sol`
+4. Wiring post-deploy (`MINTER_ROLE` + trusted forwarder)
+5. Verificación en Blockscout
+
+### 1) Build + tests
+
+```bash
+forge build
+forge test -vv
+```
+
+### 2) Deploy base: verifier + adapter + token
+
+```bash
+forge script script/Deploy.s.sol:Deploy \
+  --rpc-url "$SEPOLIA_RPC_URL" \
+  --broadcast -vv
+
+export VERIFIER=$(jq -r '.returns.verifier.value' broadcast/Deploy.s.sol/11155111/run-latest.json)
+export IDENTITY_REGISTRY_ADAPTER=$(jq -r '.returns.identityRegistryAdapter.value' broadcast/Deploy.s.sol/11155111/run-latest.json)
+export TOKEN=$(jq -r '.returns.token.value' broadcast/Deploy.s.sol/11155111/run-latest.json)
+```
+
+### 3) Deploy claim
+
+Requiere que `TOKEN`, `IDENTITY_REGISTRY_ADAPTER` y `CLAIM_AMOUNT` estén seteados.
+
+```bash
+forge script script/DeployClaim.s.sol:DeployClaim \
+  --rpc-url "$SEPOLIA_RPC_URL" \
+  --broadcast -vv
+
+export CLAIM=$(jq -r '.returns.claim.value' broadcast/DeployClaim.s.sol/11155111/run-latest.json)
+```
+
+### 4) Deploy forwarder
+
+Requiere que `FORWARDER_NAME` esté seteado.
+
+```bash
+forge script script/DeployForwarder.s.sol:DeployForwarder \
+  --rpc-url "$SEPOLIA_RPC_URL" \
+  --broadcast -vv
+
+export FORWARDER=$(jq -r '.returns.forwarder.value' broadcast/DeployForwarder.s.sol/11155111/run-latest.json)
+```
+
+### 5) Wiring post-deploy
+
+```bash
+make grant-claim-minter
+make check-claim-minter
+make check-claim-config
+
+make set-forwarder
+make set-token-forwarder
+make check-forwarder
+make check-token-forwarder
+
+FORWARDER="$FORWARDER" make check-forwarder-match
+FORWARDER="$FORWARDER" make check-token-forwarder-match
+```
+
+### 6) Snapshot de variables para `.env`
+
+```bash
+export ADMIN="$ADMIN"
+export VERIFIER="$VERIFIER"
+export IDENTITY_REGISTRY_ADAPTER="$IDENTITY_REGISTRY_ADAPTER"
+export TOKEN="$TOKEN"
+export CLAIM="$CLAIM"
+export FORWARDER="$FORWARDER"
+```
+
+En este punto el sistema queda deployado y configurado para:
+- verificación mock en Sepolia
+- claim único por usuario
+- transferencias restringidas a usuarios verificados
+- meta-transacciones vía `ERC2771Forwarder`
 
 ## Flujo de mint vía claim
 
@@ -124,9 +216,13 @@ Checks mínimos:
 cast call "$CLAIM" "paused()(bool)" --rpc-url "$SEPOLIA_RPC_URL"
 
 # Usuario aún no reclamó
+# Nota: en zsh/bash, exporta USER_ADDR antes o pasa el address literal.
+export USER_ADDR="0x..."
 cast call "$CLAIM" "claimed(address)(bool)" "$USER_ADDR" --rpc-url "$SEPOLIA_RPC_URL"
 
 # Claim tiene rol minter en token
+# Este check solo da `true` después de ejecutar `make grant-claim-minter`
+# en el wiring post-deploy.
 MINTER_ROLE=$(cast call "$TOKEN" "MINTER_ROLE()(bytes32)" --rpc-url "$SEPOLIA_RPC_URL")
 cast call "$TOKEN" "hasRole(bytes32,address)(bool)" "$MINTER_ROLE" "$CLAIM" --rpc-url "$SEPOLIA_RPC_URL"
 ```
@@ -248,7 +344,7 @@ forge verify-contract "$CLAIM" src/ClaimCLPc.sol:ClaimCLPc \
 Forwarder `ERC2771Forwarder`:
 
 ```bash
-ARGS_FWD=$(cast abi-encode "constructor(string)" "AdmapuForwarder")
+ARGS_FWD=$(cast abi-encode "constructor(string)" "$FORWARDER_NAME")
 
 # Nota: se usa FOUNDRY_SRC=. para resolver correctamente la ruta en lib/openzeppelin-contracts
 FOUNDRY_SRC=. forge verify-contract "$FORWARDER" lib/openzeppelin-contracts/contracts/metatx/ERC2771Forwarder.sol:ERC2771Forwarder \

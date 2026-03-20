@@ -27,7 +27,9 @@ Este repositorio contiene los smart contracts y el tooling necesario para deploy
 │ └── MockZKPassportVerifier.sol # Verificador mock (solo testing en Sepolia)
 │
 ├── script/
-│ └── Deploy.s.sol # Scripts de deployment
+│ ├── Deploy.s.sol # Deploy de verifier + adapter + token
+│ ├── DeployClaim.s.sol # Deploy de ClaimCLPc
+│ └── DeployForwarder.s.sol # Deploy de ERC2771Forwarder
 │
 ├── DevNotes.md # Notas detalladas de desarrollo y pruebas
 ├── README.md # Este archivo
@@ -68,8 +70,18 @@ Este repositorio contiene los smart contracts y el tooling necesario para deploy
 - ✅ Deploy funcional en Sepolia
 - ✅ Minting y transferencias restringidas por identidad
 - ✅ Mecanismo de claim único
+- ✅ Scripts de deploy para token, claim y forwarder
 - ⏳ Verificador ZK real (producción)
 - ⏳ Gobernanza / DAO
+
+## Deploy
+
+El flujo reproducible de deploy en Sepolia está documentado en [docs/deployments/sepolia.md](docs/deployments/sepolia.md) e incluye:
+- deploy base (`Deploy.s.sol`)
+- deploy de `ClaimCLPc` (`DeployClaim.s.sol`)
+- deploy de `ERC2771Forwarder` (`DeployForwarder.s.sol`)
+- wiring post-deploy (`MINTER_ROLE` + trusted forwarder)
+- verificación en Blockscout
 
 
 ## Publicaciones
