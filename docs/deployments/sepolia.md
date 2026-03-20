@@ -17,23 +17,23 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 
 **Verifier (MockZKPassportVerifier)**
 - ENS: `mockzk.admapu.eth`
-- Address: `0xD51F4F3D2c35E51FD4Fda03D4Ae8A251801C9c94`
+- Address: `0xcD59e6A78087BEA67a070b92bD7d8ff9d24a2647`
 
 **IdentityRegistryAdapter**
 - ENS: `identity.admapu.eth`
-- Address: `0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21`
+- Address: `0x0Ae1e5Dc605A88C6CD9A032C0b9C567406DBa98f`
 
 **Token (CLPc)**
 - ENS: `clpc.admapu.eth`
-- Address: `0xfb43d4e4dBB4c444e7Dcd73A86e836EC7607f553`
+- Address: `0x889679fC04063Bd8706f5c2e5de26E3554FFFCa5`
 
 **Claim (ClaimCLPc)**
 - ENS: `claimclpc.admapu.eth`
-- Address: `0x61a8e1725Bb5187CF35Bc1A682Ce55b77E68016b`
+- Address: `0x2E4F7D60AA4416ead3610bD0f90c80277A8D95BD`
 
 **Forwarder (ERC2771Forwarder)**
 - ENS: *(opcional, recomendado)*
-- Address: `0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e`
+- Address: `0xE86e8FaF0b4c69C95BDdb495D51F94e2E7Be8Dfd`
 
 ## Blockscout links
 
