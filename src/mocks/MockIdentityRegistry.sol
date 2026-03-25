@@ -16,12 +16,18 @@ contract MockIdentityRegistry is AccessControl, IIdentityRegistry {
         bool verifiedChilean;
         bool senior;
         bool chronicMeds;
+        bool schoolTransport;
     }
 
     mapping(address => Identity) private _identities;
 
     event IdentityUpdated(
-        address indexed user, bool verifiedChilean, bool senior, bool chronicMeds, address indexed updatedBy
+        address indexed user,
+        bool verifiedChilean,
+        bool senior,
+        bool chronicMeds,
+        bool schoolTransport,
+        address indexed updatedBy
     );
 
     constructor(address admin) {
@@ -43,6 +49,10 @@ contract MockIdentityRegistry is AccessControl, IIdentityRegistry {
         return _identities[user].chronicMeds;
     }
 
+    function isSchoolTransport(address user) external view returns (bool) {
+        return _identities[user].schoolTransport;
+    }
+
     function getIdentity(address user) external view returns (Identity memory) {
         return _identities[user];
     }
@@ -55,7 +65,15 @@ contract MockIdentityRegistry is AccessControl, IIdentityRegistry {
         external
         onlyRole(ISSUER_ROLE)
     {
-        _setIdentity(user, verifiedChilean, senior, chronicMeds);
+        Identity memory id = _identities[user];
+        _setIdentity(user, verifiedChilean, senior, chronicMeds, id.schoolTransport);
+    }
+
+    function setIdentity(address user, bool verifiedChilean, bool senior, bool chronicMeds, bool schoolTransport)
+        external
+        onlyRole(ISSUER_ROLE)
+    {
+        _setIdentity(user, verifiedChilean, senior, chronicMeds, schoolTransport);
     }
 
     /**
@@ -63,26 +81,35 @@ contract MockIdentityRegistry is AccessControl, IIdentityRegistry {
      */
     function setVerifiedChilean(address user, bool value) external onlyRole(ISSUER_ROLE) {
         Identity memory id = _identities[user];
-        _setIdentity(user, value, id.senior, id.chronicMeds);
+        _setIdentity(user, value, id.senior, id.chronicMeds, id.schoolTransport);
     }
 
     function setSenior(address user, bool value) external onlyRole(ISSUER_ROLE) {
         Identity memory id = _identities[user];
-        _setIdentity(user, id.verifiedChilean, value, id.chronicMeds);
+        _setIdentity(user, id.verifiedChilean, value, id.chronicMeds, id.schoolTransport);
     }
 
     function setChronicMeds(address user, bool value) external onlyRole(ISSUER_ROLE) {
         Identity memory id = _identities[user];
-        _setIdentity(user, id.verifiedChilean, id.senior, value);
+        _setIdentity(user, id.verifiedChilean, id.senior, value, id.schoolTransport);
+    }
+
+    function setSchoolTransport(address user, bool value) external onlyRole(ISSUER_ROLE) {
+        Identity memory id = _identities[user];
+        _setIdentity(user, id.verifiedChilean, id.senior, id.chronicMeds, value);
     }
 
     // --------- Internal ---------
 
-    function _setIdentity(address user, bool verifiedChilean, bool senior, bool chronicMeds) internal {
+    function _setIdentity(address user, bool verifiedChilean, bool senior, bool chronicMeds, bool schoolTransport)
+        internal
+    {
         require(user != address(0), "user=0");
 
-        _identities[user] = Identity({verifiedChilean: verifiedChilean, senior: senior, chronicMeds: chronicMeds});
+        _identities[user] = Identity({
+            verifiedChilean: verifiedChilean, senior: senior, chronicMeds: chronicMeds, schoolTransport: schoolTransport
+        });
 
-        emit IdentityUpdated(user, verifiedChilean, senior, chronicMeds, msg.sender);
+        emit IdentityUpdated(user, verifiedChilean, senior, chronicMeds, schoolTransport, msg.sender);
     }
 }
