@@ -58,7 +58,8 @@ Este repositorio contiene los smart contracts y el tooling necesario para deploy
   - Registra wallets que ya han reclamado para evitar múltiples claims.
 - `TransportBenefit.sol`: Contrato de beneficio periódico para transporte escolar.
   - Permite a usuarios elegibles reclamar una cantidad fija de CLPc una vez por período mensual.
-  - Verifica elegibilidad usando el registry de identidad compartido con `CLPc`.
+  - Verifica ciudadanía chilena usando el registry compartido con `CLPc`.
+  - Mantiene temporalmente la elegibilidad de transporte como allowlist interna administrada por admin para facilitar testing.
   - Registra claims por wallet y período para evitar dobles reclamos.
 
 ## Notas de diseño
