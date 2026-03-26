@@ -69,16 +69,6 @@ contract MockIdentityRegistryTest is Test {
         assertTrue(reg.hasChronicMeds(user));
     }
 
-    function testSchoolTransportCanBeUpdated() public {
-        vm.prank(issuer);
-        reg.setSchoolTransport(user, true);
-
-        assertTrue(reg.isSchoolTransport(user));
-
-        MockIdentityRegistry.Identity memory id = reg.getIdentity(user);
-        assertTrue(id.schoolTransport);
-    }
-
     function testZeroAddressRejected() public {
         vm.prank(issuer);
         vm.expectRevert(bytes("user=0"));

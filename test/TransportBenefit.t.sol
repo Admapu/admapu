@@ -31,9 +31,9 @@ contract TransportBenefitTest is Test {
         token.grantRole(token.MINTER_ROLE(), address(transport));
 
         registry.setVerifiedChilean(eligibleUser, true);
-        registry.setSchoolTransport(eligibleUser, true);
+        transport.setEligible(eligibleUser, true);
 
-        registry.setSchoolTransport(unverifiedUser, true);
+        transport.setEligible(unverifiedUser, true);
         registry.setVerifiedChilean(notEligibleUser, true);
     }
 
