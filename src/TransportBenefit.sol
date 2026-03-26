@@ -7,13 +7,15 @@ interface ITransportBenefitTokenMinter {
 
 interface ITransportBenefitRegistryView {
     function isVerifiedChilean(address account) external view returns (bool);
-    function isSchoolTransport(address account) external view returns (bool);
 }
 
 /**
  * @title TransportBenefit
  * @notice Programa de beneficio mensual para personas habilitadas en el registro de transporte escolar.
- * @dev Requiere que este contrato tenga MINTER_ROLE en CLPc y use la misma fuente de verdad de identidad que CLPc.
+ * @dev Requiere que este contrato tenga MINTER_ROLE en CLPc.
+ *      La verificación chilena viene desde el registry compartido con CLPc,
+ *      pero la elegibilidad de transporte vive temporalmente en este contrato
+ *      como allowlist administrada por admin para facilitar el testing.
  */
 contract TransportBenefit {
     uint256 public constant PERIOD_DURATION = 30 days;
@@ -26,9 +28,11 @@ contract TransportBenefit {
     bool public paused;
     address public trustedForwarder;
 
+    mapping(address => bool) public eligibleSchoolTransport;
     mapping(address => mapping(uint256 => bool)) public claimedByPeriod;
 
     event Claimed(address indexed user, uint256 amount, uint256 indexed period);
+    event EligibilityUpdated(address indexed user, bool eligible, address indexed updatedBy);
     event Paused(bool paused);
     event AdminTransferred(address indexed oldAdmin, address indexed newAdmin);
     event TrustedForwarderUpdated(address indexed oldForwarder, address indexed newForwarder);
@@ -68,6 +72,22 @@ contract TransportBenefit {
         return claimedByPeriod[account][currentPeriod()];
     }
 
+    function setEligible(address account, bool eligible) external onlyAdmin {
+        if (account == address(0)) revert ZeroAddress();
+        eligibleSchoolTransport[account] = eligible;
+        emit EligibilityUpdated(account, eligible, _msgSender());
+    }
+
+    function setEligibleBatch(address[] calldata accounts, bool eligible) external onlyAdmin {
+        uint256 length = accounts.length;
+        for (uint256 i = 0; i < length; i++) {
+            address account = accounts[i];
+            if (account == address(0)) revert ZeroAddress();
+            eligibleSchoolTransport[account] = eligible;
+            emit EligibilityUpdated(account, eligible, _msgSender());
+        }
+    }
+
     function setPaused(bool _paused) external onlyAdmin {
         paused = _paused;
         emit Paused(_paused);
@@ -104,7 +124,7 @@ contract TransportBenefit {
 
         if (paused) revert PausedError();
         if (!IDENTITY_REGISTRY.isVerifiedChilean(sender)) revert NotVerified(sender);
-        if (!IDENTITY_REGISTRY.isSchoolTransport(sender)) revert NotEligible(sender);
+        if (!eligibleSchoolTransport[sender]) revert NotEligible(sender);
         if (claimedByPeriod[sender][period]) revert AlreadyClaimed(sender, period);
 
         claimedByPeriod[sender][period] = true;
