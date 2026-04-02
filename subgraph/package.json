@@ -1,0 +1,19 @@
+{
+  "name": "admapu-subgraph",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "scripts": {
+    "codegen": "graph codegen subgraph.yaml",
+    "build": "graph build subgraph.yaml",
+    "deploy:studio": "graph deploy --studio admapu subgraph.yaml",
+    "create:local": "graph create admapu-clpc --node http://localhost:8020/",
+    "deploy:local": "graph deploy admapu-clpc --node http://localhost:8020/ --ipfs http://localhost:5001 subgraph.yaml"
+  },
+  "devDependencies": {
+    "@graphprotocol/graph-cli": "^0.98.1",
+    "@graphprotocol/graph-ts": "^0.38.2",
+    "assemblyscript": "^0.27.34",
+    "typescript": "^5.8.3"
+  }
+}

@@ -1,0 +1,126 @@
+type Account @entity(immutable: false) {
+  id: Bytes!
+  currentVerified: Boolean!
+  everVerified: Boolean!
+  verificationCount: Int!
+  revocationCount: Int!
+  claimed: Boolean!
+  claimCount: Int!
+  totalClaimed: BigInt!
+  lastVerificationTimestamp: BigInt
+  lastRevocationTimestamp: BigInt
+  createdAt: BigInt!
+  updatedAt: BigInt!
+}
+
+type ProcessedTransaction @entity(immutable: false) {
+  id: Bytes!
+  gasSpentWei: BigInt!
+  blockNumber: BigInt!
+  timestamp: BigInt!
+}
+
+type GlobalMetric @entity(immutable: false) {
+  id: String!
+  currentVerifiedUsers: Int!
+  currentRevokedUsers: Int!
+  cumulativeVerificationEvents: Int!
+  cumulativeRevocationEvents: Int!
+  clpcTransferCount: BigInt!
+  clpcTransferVolume: BigInt!
+  clpcMintCount: BigInt!
+  clpcMintVolume: BigInt!
+  clpcBurnCount: BigInt!
+  clpcBurnVolume: BigInt!
+  claimCount: BigInt!
+  claimVolume: BigInt!
+  gasSpentWei: BigInt!
+  updatedAt: BigInt!
+}
+
+type HourlyMetric @entity(immutable: false) {
+  id: String!
+  bucketStart: BigInt!
+  verifiedEvents: Int!
+  revokedEvents: Int!
+  netVerifiedDelta: Int!
+  clpcTransferCount: BigInt!
+  clpcTransferVolume: BigInt!
+  clpcMintCount: BigInt!
+  clpcMintVolume: BigInt!
+  clpcBurnCount: BigInt!
+  clpcBurnVolume: BigInt!
+  claimCount: BigInt!
+  claimVolume: BigInt!
+  gasSpentWei: BigInt!
+  currentVerifiedUsers: Int!
+  currentRevokedUsers: Int!
+  updatedAt: BigInt!
+}
+
+type DailyMetric @entity(immutable: false) {
+  id: String!
+  bucketStart: BigInt!
+  verifiedEvents: Int!
+  revokedEvents: Int!
+  netVerifiedDelta: Int!
+  clpcTransferCount: BigInt!
+  clpcTransferVolume: BigInt!
+  clpcMintCount: BigInt!
+  clpcMintVolume: BigInt!
+  clpcBurnCount: BigInt!
+  clpcBurnVolume: BigInt!
+  claimCount: BigInt!
+  claimVolume: BigInt!
+  gasSpentWei: BigInt!
+  currentVerifiedUsers: Int!
+  currentRevokedUsers: Int!
+  updatedAt: BigInt!
+}
+
+type VerificationEvent @entity(immutable: true) {
+  id: String!
+  account: Account!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type RevocationEvent @entity(immutable: true) {
+  id: String!
+  account: Account!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type TokenTransferEvent @entity(immutable: true) {
+  id: String!
+  from: Bytes!
+  to: Bytes!
+  amount: BigInt!
+  transferType: String!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type TokenMintEvent @entity(immutable: true) {
+  id: String!
+  to: Bytes!
+  amount: BigInt!
+  year: BigInt!
+  totalMintedThisYear: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
+
+type ClaimEvent @entity(immutable: true) {
+  id: String!
+  account: Account!
+  amount: BigInt!
+  timestamp: BigInt!
+  blockNumber: BigInt!
+  transactionHash: Bytes!
+}
