@@ -9,3 +9,4 @@
 
 ## Branch naming convention
 - Use Conventional Branch v1.0.0
+- Always branch off `main` branch when starting a new feature or fix

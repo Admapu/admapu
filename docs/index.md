@@ -15,8 +15,8 @@ Bienvenido a la documentación de Admapu. Este proyecto busca desarrollar una pr
 - Flujo reproducible de deploy
 - Scripts documentados
 - Tests automáticos
+- Observability vía subgraph y worker serverless
 
 ## Demo
 - Wallet no verificada NO puede transferir
 - Wallet verificada SÍ puede transferir
-
