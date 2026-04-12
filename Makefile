@@ -85,20 +85,40 @@ check-claim-config: ## Show Claim wiring against Token identity registry
 	echo "CLAIM_AMOUNT              = $$(cast call "$(CLAIM)" "CLAIM_AMOUNT()(uint256)" --rpc-url "$(SEPOLIA_RPC_URL)")"
 
 ##@ Meta-transactions (ERC-2771)
-set-forwarder: ## Set trusted forwarder in ClaimCLPc. Requires FORWARDER env variable
+schedule-forwarder: ## Schedule trusted forwarder update in ClaimCLPc. Requires FORWARDER env variable
 	@cast send "$(CLAIM)" "setTrustedForwarder(address)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+execute-forwarder: ## Execute pending trusted forwarder update in ClaimCLPc after timelock
+	@cast send "$(CLAIM)" "executeTrustedForwarderUpdate()" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+cancel-forwarder: ## Cancel pending trusted forwarder update in ClaimCLPc
+	@cast send "$(CLAIM)" "cancelTrustedForwarderUpdate()" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
 
 check-forwarder: ## Show trusted forwarder configured in ClaimCLPc
 	@cast call "$(CLAIM)" "trustedForwarder()(address)" --rpc-url "$(SEPOLIA_RPC_URL)"
 
+check-forwarder-pending: ## Show pending trusted forwarder update in ClaimCLPc
+	@echo "CLAIM.pendingTrustedForwarder    = $$(cast call "$(CLAIM)" "pendingTrustedForwarder()(address)" --rpc-url "$(SEPOLIA_RPC_URL)")"; \
+	echo "CLAIM.pendingTrustedForwarderEta = $$(cast call "$(CLAIM)" "pendingTrustedForwarderEta()(uint256)" --rpc-url "$(SEPOLIA_RPC_URL)")"
+
 check-forwarder-match: ## Check if FORWARDER is trusted in ClaimCLPc. Requires FORWARDER env variable
 	@cast call "$(CLAIM)" "isTrustedForwarder(address)(bool)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)"
 
-set-token-forwarder: ## Set trusted forwarder in CLPc token. Requires FORWARDER env variable
+schedule-token-forwarder: ## Schedule trusted forwarder update in CLPc. Requires FORWARDER env variable
 	@cast send "$(TOKEN)" "setTrustedForwarder(address)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+execute-token-forwarder: ## Execute pending trusted forwarder update in CLPc after timelock
+	@cast send "$(TOKEN)" "executeTrustedForwarderUpdate()" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+cancel-token-forwarder: ## Cancel pending trusted forwarder update in CLPc
+	@cast send "$(TOKEN)" "cancelTrustedForwarderUpdate()" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
 
 check-token-forwarder: ## Show trusted forwarder configured in CLPc token
 	@cast call "$(TOKEN)" "trustedForwarder()(address)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+check-token-forwarder-pending: ## Show pending trusted forwarder update in CLPc
+	@echo "TOKEN.pendingTrustedForwarder    = $$(cast call "$(TOKEN)" "pendingTrustedForwarder()(address)" --rpc-url "$(SEPOLIA_RPC_URL)")"; \
+	echo "TOKEN.pendingTrustedForwarderEta = $$(cast call "$(TOKEN)" "pendingTrustedForwarderEta()(uint256)" --rpc-url "$(SEPOLIA_RPC_URL)")"
 
 check-token-forwarder-match: ## Check if FORWARDER is trusted in CLPc token. Requires FORWARDER env variable
 	@cast call "$(TOKEN)" "isTrustedForwarder(address)(bool)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)"

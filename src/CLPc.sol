@@ -2,8 +2,8 @@
 pragma solidity ^0.8.27;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
+import {AccessControlDefaultAdminRules} from
+    "@openzeppelin/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 import {IIdentityRegistry} from "./IIdentityRegistry.sol";
 
 /**
@@ -24,7 +24,7 @@ import {IIdentityRegistry} from "./IIdentityRegistry.sol";
  * - PAUSER_ROLE: Autorizado para pausar el minting
  * - PROGRAM_ROLE: Contratos de programas sociales autorizados
  */
-contract CLPc is ERC20, AccessControl, Pausable {
+contract CLPc is ERC20, AccessControlDefaultAdminRules {
     // ============ Roles ============
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -41,6 +41,9 @@ contract CLPc is ERC20, AccessControl, Pausable {
 
     /// @notice Delay mínimo para ejecutar cambio de identity registry
     uint256 public constant IDENTITY_REGISTRY_UPDATE_DELAY = 2 days;
+
+    /// @notice Delay mínimo para ejecutar cambio de trusted forwarder
+    uint256 public constant TRUSTED_FORWARDER_UPDATE_DELAY = 2 days;
 
     // ============ Variables de Estado ============
 
@@ -67,6 +70,12 @@ contract CLPc is ERC20, AccessControl, Pausable {
 
     /// @notice Trusted forwarder para meta-txs ERC-2771
     address public trustedForwarder;
+
+    /// @notice Forwarder pendiente de activación (timelock)
+    address public pendingTrustedForwarder;
+
+    /// @notice Timestamp mínimo para ejecutar el cambio de forwarder
+    uint256 public pendingTrustedForwarderEta;
 
     // ============ Eventos ============
 
@@ -95,6 +104,18 @@ contract CLPc is ERC20, AccessControl, Pausable {
      * @param newForwarder Nuevo forwarder
      */
     event TrustedForwarderUpdated(address indexed oldForwarder, address indexed newForwarder);
+
+    /**
+     * @notice Emitido cuando se agenda un cambio de trusted forwarder
+     * @param newForwarder Dirección propuesta
+     * @param executeAfter Timestamp mínimo de ejecución
+     */
+    event TrustedForwarderUpdateScheduled(address indexed newForwarder, uint256 executeAfter);
+
+    /**
+     * @notice Emitido cuando se cancela un cambio pendiente de trusted forwarder
+     */
+    event TrustedForwarderUpdateCancelled();
 
     /**
      * @notice Emitido cuando se mintean tokens
@@ -128,6 +149,10 @@ contract CLPc is ERC20, AccessControl, Pausable {
     error ZeroAmount();
     error IdentityRegistryUpdateNotReady(uint256 executeAfter);
     error NoPendingIdentityRegistryUpdate();
+    error TrustedForwarderUpdateNotReady(uint256 executeAfter);
+    error NoPendingTrustedForwarderUpdate();
+    error ArraysLengthMismatch();
+    error EmptyBatch();
 
     // ============ Constructor ============
 
@@ -136,14 +161,15 @@ contract CLPc is ERC20, AccessControl, Pausable {
      * @param _identityRegistry Dirección del registry de identidad
      * @param _admin Dirección que recibirá el rol de admin
      */
-    constructor(address _identityRegistry, address _admin) ERC20("Chilean Peso Coin", "CLPc") {
+    constructor(address _identityRegistry, address _admin)
+        ERC20("Chilean Peso Coin", "CLPc")
+        AccessControlDefaultAdminRules(uint48(2 days), _admin)
+    {
         if (_identityRegistry == address(0)) revert ZeroAddress();
-        if (_admin == address(0)) revert ZeroAddress();
 
         identityRegistry = IIdentityRegistry(_identityRegistry);
 
         // Configurar roles iniciales
-        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(MINTER_ROLE, _admin);
         _grantRole(PAUSER_ROLE, _admin);
 
@@ -208,8 +234,45 @@ contract CLPc is ERC20, AccessControl, Pausable {
      * @dev Solo DEFAULT_ADMIN_ROLE. Usar address(0) para deshabilitar meta-txs.
      */
     function setTrustedForwarder(address _trustedForwarder) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        emit TrustedForwarderUpdated(trustedForwarder, _trustedForwarder);
-        trustedForwarder = _trustedForwarder;
+        pendingTrustedForwarder = _trustedForwarder;
+        pendingTrustedForwarderEta = block.timestamp + TRUSTED_FORWARDER_UPDATE_DELAY;
+
+        emit TrustedForwarderUpdateScheduled(_trustedForwarder, pendingTrustedForwarderEta);
+    }
+
+    /**
+     * @notice Ejecuta el cambio de trusted forwarder previamente agendado.
+     * @dev Solo DEFAULT_ADMIN_ROLE, luego de cumplido el delay.
+     */
+    function executeTrustedForwarderUpdate() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        address _newForwarder = pendingTrustedForwarder;
+        uint256 eta = pendingTrustedForwarderEta;
+
+        if (_newForwarder == address(0) && eta == 0) revert NoPendingTrustedForwarderUpdate();
+        if (block.timestamp < eta) revert TrustedForwarderUpdateNotReady(eta);
+
+        address oldForwarder = trustedForwarder;
+        trustedForwarder = _newForwarder;
+
+        pendingTrustedForwarder = address(0);
+        pendingTrustedForwarderEta = 0;
+
+        emit TrustedForwarderUpdated(oldForwarder, _newForwarder);
+    }
+
+    /**
+     * @notice Cancela un cambio de trusted forwarder pendiente.
+     * @dev Solo DEFAULT_ADMIN_ROLE.
+     */
+    function cancelTrustedForwarderUpdate() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (pendingTrustedForwarder == address(0) && pendingTrustedForwarderEta == 0) {
+            revert NoPendingTrustedForwarderUpdate();
+        }
+
+        pendingTrustedForwarder = address(0);
+        pendingTrustedForwarderEta = 0;
+
+        emit TrustedForwarderUpdateCancelled();
     }
 
     /**
@@ -271,8 +334,8 @@ contract CLPc is ERC20, AccessControl, Pausable {
      * @dev Solo puede ser llamado por MINTER_ROLE
      */
     function mintBatch(address[] calldata recipients, uint256[] calldata amounts) external onlyRole(MINTER_ROLE) {
-        require(recipients.length == amounts.length, "CLPc: arrays length mismatch");
-        require(recipients.length > 0, "CLPc: empty arrays");
+        if (recipients.length != amounts.length) revert ArraysLengthMismatch();
+        if (recipients.length == 0) revert EmptyBatch();
 
         if (mintingPaused) revert MintingIsPaused();
 
@@ -425,7 +488,13 @@ contract CLPc is ERC20, AccessControl, Pausable {
      * @param interfaceId ID de la interfaz
      * @return bool true si la interfaz es soportada
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual override(AccessControl) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(AccessControlDefaultAdminRules)
+        returns (bool)
+    {
         return super.supportsInterface(interfaceId);
     }
 

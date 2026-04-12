@@ -32,6 +32,12 @@ contract CLPcTest is Test {
         registry.setVerifiedChilean(recipient2, true);
     }
 
+    function _scheduleAndExecuteForwarderUpdate(address newForwarder) internal {
+        token.setTrustedForwarder(newForwarder);
+        vm.warp(block.timestamp + token.TRUSTED_FORWARDER_UPDATE_DELAY());
+        token.executeTrustedForwarderUpdate();
+    }
+
     function testAdminHasDefaultAndMinterRoles() public view {
         require(token.hasRole(token.DEFAULT_ADMIN_ROLE(), admin), "missing admin role");
         require(token.hasRole(token.MINTER_ROLE(), admin), "missing minter role");
@@ -147,7 +153,7 @@ contract CLPcTest is Test {
 
     function testForwardedTransferSucceedsWhenBothVerified() public {
         registry.setVerifiedChilean(sender, true);
-        token.setTrustedForwarder(forwarder);
+        _scheduleAndExecuteForwarderUpdate(forwarder);
 
         uint256 amount = 100 * 10 ** token.decimals();
         token.mint(sender, amount);
@@ -166,7 +172,7 @@ contract CLPcTest is Test {
 
     function testNonTrustedForwarderCannotSpoofSender() public {
         registry.setVerifiedChilean(sender, true);
-        token.setTrustedForwarder(forwarder);
+        _scheduleAndExecuteForwarderUpdate(forwarder);
 
         uint256 amount = 100 * 10 ** token.decimals();
         token.mint(sender, amount);
@@ -181,10 +187,27 @@ contract CLPcTest is Test {
         assertEq(revertData, abi.encodeWithSelector(CLPc.UnverifiedSender.selector, outsider));
     }
 
-    function testAdminCanSetTrustedForwarder() public {
+    function testAdminCanSetTrustedForwarderAfterDelay() public {
         token.setTrustedForwarder(forwarder);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(CLPc.TrustedForwarderUpdateNotReady.selector, block.timestamp + 2 days)
+        );
+        token.executeTrustedForwarderUpdate();
+
+        vm.warp(block.timestamp + token.TRUSTED_FORWARDER_UPDATE_DELAY());
+        token.executeTrustedForwarderUpdate();
+
         assertEq(token.trustedForwarder(), forwarder);
         assertTrue(token.isTrustedForwarder(forwarder));
+    }
+
+    function testAdminCanCancelTrustedForwarderUpdate() public {
+        token.setTrustedForwarder(forwarder);
+        token.cancelTrustedForwarderUpdate();
+
+        assertEq(token.pendingTrustedForwarder(), address(0));
+        assertEq(token.pendingTrustedForwarderEta(), 0);
     }
 
     function testMintBatchMismatchedArraysReverts() public {
@@ -195,7 +218,7 @@ contract CLPcTest is Test {
         amounts[0] = 1;
         amounts[1] = 1;
 
-        vm.expectRevert("CLPc: arrays length mismatch");
+        vm.expectRevert(CLPc.ArraysLengthMismatch.selector);
         token.mintBatch(recipients, amounts);
     }
 
@@ -203,7 +226,7 @@ contract CLPcTest is Test {
         address[] memory recipients = new address[](0);
         uint256[] memory amounts = new uint256[](0);
 
-        vm.expectRevert("CLPc: empty arrays");
+        vm.expectRevert(CLPc.EmptyBatch.selector);
         token.mintBatch(recipients, amounts);
     }
 
@@ -269,6 +292,20 @@ contract CLPcTest is Test {
             )
         );
         token.setTrustedForwarder(forwarder);
+        vm.stopPrank();
+    }
+
+    function testNonAdminCannotExecuteTrustedForwarderUpdate() public {
+        token.setTrustedForwarder(forwarder);
+        vm.warp(block.timestamp + token.TRUSTED_FORWARDER_UPDATE_DELAY());
+
+        vm.startPrank(outsider);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, outsider, token.DEFAULT_ADMIN_ROLE()
+            )
+        );
+        token.executeTrustedForwarderUpdate();
         vm.stopPrank();
     }
 }

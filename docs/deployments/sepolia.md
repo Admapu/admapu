@@ -61,12 +61,26 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 
 Roles / config:
 - `DEFAULT_ADMIN_ROLE()`
+- `defaultAdmin()`
+- `pendingDefaultAdmin()`
+- `defaultAdminDelay()`
+- `beginDefaultAdminTransfer(address)`
+- `acceptDefaultAdminTransfer()`
+- `cancelDefaultAdminTransfer()`
 - `MINTER_ROLE()`
 - `PAUSER_ROLE()`
 - `PROGRAM_ROLE()`
 - `identityRegistry()`
 - `setIdentityRegistry(address)`
+- `executeIdentityRegistryUpdate()`
+- `cancelIdentityRegistryUpdate()`
+- `trustedForwarder()`
 - `setMintingPaused(bool)`
+- `setTrustedForwarder(address)`  // agenda el cambio
+- `executeTrustedForwarderUpdate()`
+- `cancelTrustedForwarderUpdate()`
+- `pendingTrustedForwarder()`
+- `pendingTrustedForwarderEta()`
 - `mintingPaused()`
 - `availableToMint()`
 - `MAX_ANNUAL_SUPPLY()`
@@ -87,6 +101,23 @@ Mint:
 
 Gating:
 - `canReceive(address)`
+
+### ClaimCLPc
+
+- `owner()`
+- `pendingOwner()`
+- `transferOwnership(address)`
+- `acceptOwnership()`
+- `paused()`
+- `setPaused(bool)`
+- `trustedForwarder()`
+- `setTrustedForwarder(address)`  // agenda el cambio
+- `executeTrustedForwarderUpdate()`
+- `cancelTrustedForwarderUpdate()`
+- `pendingTrustedForwarder()`
+- `pendingTrustedForwarderEta()`
+- `claim()`
+- `claimed(address)`
 
 ## Cómo interactuar (CLI con Foundry)
 
@@ -117,7 +148,7 @@ El flujo soportado por el repo hoy es:
 1. Deploy base con `script/Deploy.s.sol`
 2. Deploy de `ClaimCLPc` con `script/DeployClaim.s.sol`
 3. Deploy de `ERC2771Forwarder` con `script/DeployForwarder.s.sol`
-4. Wiring post-deploy (`MINTER_ROLE` + trusted forwarder)
+4. Wiring post-deploy (`MINTER_ROLE` + trusted forwarder timelocked)
 5. Verificación en Blockscout
 
 ### 1) Build + tests
@@ -170,8 +201,15 @@ make grant-claim-minter
 make check-claim-minter
 make check-claim-config
 
-make set-forwarder
-make set-token-forwarder
+make schedule-forwarder
+make schedule-token-forwarder
+make check-forwarder-pending
+make check-token-forwarder-pending
+
+# esperar el timelock antes de ejecutar
+make execute-forwarder
+make execute-token-forwarder
+
 make check-forwarder
 make check-token-forwarder
 
@@ -233,6 +271,7 @@ Para que el usuario no pague gas:
 - El usuario firma typed-data.
 - El relayer envía `forwarder.execute(...)` y paga gas.
 - `ClaimCLPc` y `CLPc` deben confiar en ese forwarder.
+- Desde este hardening, la confianza en el forwarder se activa recién después del timelock.
 
 ```bash
 # Forwarder confiable configurado en Claim
@@ -330,8 +369,8 @@ Claim `ClaimCLPc`:
 
 ```bash
 CLAIM_AMOUNT=$(cast call "$CLAIM" "CLAIM_AMOUNT()(uint256)" --rpc-url "$SEPOLIA_RPC_URL" | awk '{print $1}')
-CLAIM_ADMIN=$(cast call "$CLAIM" "admin()(address)" --rpc-url "$SEPOLIA_RPC_URL")
-ARGS_CLAIM=$(cast abi-encode "constructor(address,address,uint256,address)" "$TOKEN" "$IDENTITY_REGISTRY_ADAPTER" "$CLAIM_AMOUNT" "$CLAIM_ADMIN")
+CLAIM_OWNER=$(cast call "$CLAIM" "owner()(address)" --rpc-url "$SEPOLIA_RPC_URL")
+ARGS_CLAIM=$(cast abi-encode "constructor(address,address,uint256,address)" "$TOKEN" "$IDENTITY_REGISTRY_ADAPTER" "$CLAIM_AMOUNT" "$CLAIM_OWNER")
 
 forge verify-contract "$CLAIM" src/ClaimCLPc.sol:ClaimCLPc \
   --chain-id 11155111 \

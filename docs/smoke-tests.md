@@ -87,8 +87,15 @@ make grant-claim-minter
 make check-claim-minter
 make check-claim-config
 
-make set-forwarder
-make set-token-forwarder
+make schedule-forwarder
+make schedule-token-forwarder
+make check-forwarder-pending
+make check-token-forwarder-pending
+
+# esperar el timelock on-chain antes de ejecutar
+make execute-forwarder
+make execute-token-forwarder
+
 make check-forwarder
 make check-token-forwarder
 FORWARDER="$FORWARDER" make check-forwarder-match
@@ -99,6 +106,7 @@ Esperado:
 - `CLAIM` tiene `MINTER_ROLE` en `TOKEN`.
 - `ClaimCLPc` y `CLPc` confían en el mismo `FORWARDER`.
 - Antes de `grant-claim-minter`, el check de minter puede devolver `false`. Eso es esperado.
+- El trusted forwarder no queda activo hasta ejecutar el timelock.
 
 ### 3.4 (PoC con mock) Marcar usuario verificado y re-validar
 
@@ -130,3 +138,4 @@ Si algún paso falla, **detener deploy** y corregir antes de avanzar.
 - Este runbook intencionalmente evita automatización (`smoke.sh`) para privilegiar una revisión manual explícita en cada release.
 - Para producción, complementar con controles adicionales (roles/permissions, eventos críticos, monitoreo y plan de rollback).
 - El flujo actual sigue requiriendo wiring post-deploy: `MINTER_ROLE` para `CLAIM` y trusted forwarder compartido entre `CLAIM` y `TOKEN`.
+- Desde este hardening, el wiring del forwarder es de dos pasos: agendar y luego ejecutar después del delay.
