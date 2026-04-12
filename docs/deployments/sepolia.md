@@ -169,13 +169,12 @@ export FORWARDER="0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e"
 El flujo soportado por el repo hoy es:
 1. Deploy base con `script/Deploy.s.sol`
 2. Deploy de `ClaimCLPc` con `script/DeployClaim.s.sol`
-3. Deploy de `ERC2771Forwarder` con `script/DeployForwarder.s.sol`
-4. Wiring post-deploy (`MINTER_ROLE` + trusted forwarder timelocked)
-5. Verificación en Blockscout
-7. Deploy de `TransportBenefit` con `script/DeployTransport.s.sol`
-8. Deploy de `ERC2771Forwarder` con `script/DeployForwarder.s.sol`
-9. Wiring post-deploy (`MINTER_ROLE` + trusted forwarder)
-10. Verificación en Blockscout
+3. Deploy de `TransportBenefit` con `script/DeployTransport.s.sol`
+4. Deploy de `ERC2771Forwarder` con `script/DeployForwarder.s.sol`
+5. Wiring post-deploy (`MINTER_ROLE` + trusted forwarder)
+6. Seed inicial de elegibilidad de transporte escolar
+7. Smoke tests post-deploy
+8. Verificación en Blockscout
 
 ### 1) Build + tests
 
@@ -238,10 +237,22 @@ export FORWARDER=$(jq -r '.returns.forwarder.value' broadcast/DeployForwarder.s.
 
 ### 6) Wiring post-deploy
 
+Orden recomendado:
+1. Dar `MINTER_ROLE` a `CLAIM` y `TRANSPORT`
+2. Configurar `CLAIM` y `TOKEN` con el mismo `FORWARDER` usando `schedule + execute`
+3. Configurar `TRANSPORT` con el mismo `FORWARDER`
+4. Verificar que los tres contratos apunten al mismo forwarder
+5. Seedear elegibilidad de transporte
+6. Correr smoke tests
+
 ```bash
 make grant-claim-minter
 make check-claim-minter
 make check-claim-config
+
+make grant-transport-minter
+make check-transport-minter
+make check-transport-config
 
 make schedule-forwarder
 make schedule-token-forwarder
@@ -252,13 +263,7 @@ make check-token-forwarder-pending
 make execute-forwarder
 make execute-token-forwarder
 
-make grant-transport-minter
-make check-transport-minter
-make check-transport-config
-
-make set-forwarder
 make set-transport-forwarder
-make set-token-forwarder
 make check-forwarder
 make check-transport-forwarder
 make check-token-forwarder
@@ -281,7 +286,46 @@ make set-transport-eligible
 make check-transport-eligible
 ```
 
-### 8) Snapshot de variables para `.env`
+### 8) Smoke test mínimo post-deploy
+
+El repositorio expone un checklist operatorio:
+
+```bash
+make smoke-test
+```
+
+Flujo manual mínimo:
+
+```bash
+# 1. Verificación mock
+export USER_ADDR="0x..."
+make whitelist-user
+make check-user
+
+# 2. Claim único
+make check-claim
+USER_PK="0x..." make claim-direct
+make check-claim
+
+# 3. Beneficio de transporte
+export ELIGIBLE=true
+make set-transport-eligible
+make check-transport-eligible
+export PERIOD=$(cast call "$TRANSPORT" "currentPeriod()(uint256)" --rpc-url "$SEPOLIA_RPC_URL")
+make check-transport-claimed
+USER_PK="0x..." make claim-transport-direct
+make check-transport-claimed
+
+# 4. Forwarders
+make check-forwarder
+make check-token-forwarder
+make check-transport-forwarder
+FORWARDER="$FORWARDER" make check-forwarder-match
+FORWARDER="$FORWARDER" make check-token-forwarder-match
+FORWARDER="$FORWARDER" make check-transport-forwarder-match
+```
+
+### 9) Snapshot de variables para `.env`
 
 ```bash
 export ADMIN="$ADMIN"

@@ -16,7 +16,7 @@ TX_FEE_OPTS := $(if $(TX_GAS_LIMIT),--gas-limit "$(TX_GAS_LIMIT)",) \
 	$(if $(TX_MAX_FEE),--gas-price "$(TX_MAX_FEE)",) \
 	$(if $(TX_PRIORITY_FEE),--priority-gas-price "$(TX_PRIORITY_FEE)",)
 
-.PHONY: help
+.PHONY: help smoke-test
 
 .DEFAULT_GOAL := help
 
@@ -176,6 +176,42 @@ claim-calldata: ## Print calldata for claim() (useful for relayer requests)
 claim-transport-calldata: ## Print calldata for TransportBenefit.claim() (useful for relayer requests)
 	@cast calldata "claim()"
 
+##@ Testing
+smoke-test: ## Print the minimal post-deploy smoke-test checklist for Sepolia
+	@printf "\nSmoke test checklist (Sepolia)\n"
+	@printf "1. Local validation\n"
+	@printf "   - forge build\n"
+	@printf "   - forge test -vv\n"
+	@printf "2. Deployment wiring\n"
+	@printf "   - make check-claim-minter\n"
+	@printf "   - make check-transport-minter\n"
+	@printf "   - make check-claim-config\n"
+	@printf "   - make check-transport-config\n"
+	@printf "   - make check-forwarder\n"
+	@printf "   - make check-token-forwarder\n"
+	@printf "   - make check-transport-forwarder\n"
+	@printf "3. User verification\n"
+	@printf "   - export USER_ADDR=0x...\n"
+	@printf "   - make whitelist-user\n"
+	@printf "   - make check-user\n"
+	@printf "4. Claim benefit\n"
+	@printf "   - make check-claim\n"
+	@printf "   - USER_PK=0x... make claim-direct\n"
+	@printf "5. Transport benefit\n"
+	@printf "   - ELIGIBLE=true USER_ADDR=0x... make set-transport-eligible\n"
+	@printf "   - make check-transport-eligible\n"
+	@printf "   - PERIOD=$$(make -s check-transport-period | tail -n 1 | tr -d '\r') USER_ADDR=0x... make check-transport-claimed\n"
+	@printf "   - USER_PK=0x... make claim-transport-direct\n"
+	@printf "6. Gasless flows\n"
+	@printf "   - Verify the same FORWARDER is trusted in CLAIM, TOKEN and TRANSPORT\n"
+	@printf "   - Use make claim-calldata, make claim-transport-calldata and make send-calldata to prepare relayer requests\n"
+	@printf "7. Manual success criteria\n"
+	@printf "   - verified user can claim once\n"
+	@printf "   - unverified user cannot claim\n"
+	@printf "   - verified and transport-eligible user can claim transport once per period\n"
+	@printf "   - gasless token transfer only works between verified users\n"
+
+##@ Help
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} \
 	/^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } \
