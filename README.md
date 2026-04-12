@@ -23,6 +23,7 @@ Este repositorio contiene los smart contracts y el tooling necesario para deploy
 │ ├── CLPc.sol # Token ERC‑20 con transferencias restringidas por ZK
 │ ├── IZKPassportVerifier.sol # Interfaz del verificador de identidad
 │ ├── ClaimCLPc.sol # Contrato de claim único por wallet
+│ ├── TransportBenefit.sol # Beneficio mensual para transporte escolar
 │ └── mocks/
 │ └── MockZKPassportVerifier.sol # Verificador mock (solo testing en Sepolia)
 │
@@ -55,6 +56,11 @@ Este repositorio contiene los smart contracts y el tooling necesario para deploy
   - Permite a usuarios elegibles reclamar una cantidad predefinida de CLPc.
   - Verifica elegibilidad usando el verificador de identidad.
   - Registra wallets que ya han reclamado para evitar múltiples claims.
+- `TransportBenefit.sol`: Contrato de beneficio periódico para transporte escolar.
+  - Permite a usuarios elegibles reclamar una cantidad fija de CLPc una vez por período mensual.
+  - Verifica ciudadanía chilena usando el registry compartido con `CLPc`.
+  - Mantiene temporalmente la elegibilidad de transporte como allowlist interna administrada por admin para facilitar testing.
+  - Registra claims por wallet y período para evitar dobles reclamos.
 
 ## Notas de diseño
 - El token no almacena datos de identidad.
