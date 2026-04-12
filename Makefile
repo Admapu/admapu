@@ -84,6 +84,41 @@ check-claim-config: ## Show Claim wiring against Token identity registry
 	echo "TOKEN.identityRegistry    = $$(cast call "$(TOKEN)" "identityRegistry()(address)" --rpc-url "$(SEPOLIA_RPC_URL)")"; \
 	echo "CLAIM_AMOUNT              = $$(cast call "$(CLAIM)" "CLAIM_AMOUNT()(uint256)" --rpc-url "$(SEPOLIA_RPC_URL)")"
 
+##@ Transport benefit
+check-transport-period: ## Show current claim period for TransportBenefit
+	@cast call "$(TRANSPORT)" "currentPeriod()(uint256)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+check-transport-claimed: ## Check if USER_ADDR already claimed in PERIOD. Requires USER_ADDR and PERIOD env variables
+	@cast call "$(TRANSPORT)" "claimedByPeriod(address,uint256)(bool)" "$(USER_ADDR)" "$(PERIOD)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+check-transport-amount: ## Show fixed monthly amount from TransportBenefit
+	@cast call "$(TRANSPORT)" "BENEFIT_AMOUNT()(uint256)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+check-transport-eligible: ## Check if USER_ADDR is eligible for school transport. Requires USER_ADDR env variable
+	@cast call "$(TRANSPORT)" "eligibleSchoolTransport(address)(bool)" "$(USER_ADDR)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+set-transport-eligible: ## Set transport eligibility for USER_ADDR. Requires USER_ADDR and ELIGIBLE env variables
+	@cast send "$(TRANSPORT)" "setEligible(address,bool)" "$(USER_ADDR)" "$(ELIGIBLE)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+claim-transport-direct: ## Claim monthly transport benefit as USER_PK (user pays gas). Requires USER_PK env variable
+	@cast send "$(TRANSPORT)" "claim()" $(TX_FEE_OPTS) --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(USER_PK)"
+
+grant-transport-minter: ## Grant MINTER_ROLE on TOKEN to TRANSPORT using DEPLOYER_PK
+	@MINTER_ROLE=$$(cast call "$(TOKEN)" "MINTER_ROLE()(bytes32)" --rpc-url "$(SEPOLIA_RPC_URL)"); \
+	cast send "$(TOKEN)" "grantRole(bytes32,address)" "$$MINTER_ROLE" "$(TRANSPORT)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+check-transport-minter: ## Check if TRANSPORT has MINTER_ROLE on TOKEN
+	@MINTER_ROLE=$$(cast call "$(TOKEN)" "MINTER_ROLE()(bytes32)" --rpc-url "$(SEPOLIA_RPC_URL)"); \
+	cast call "$(TOKEN)" "hasRole(bytes32,address)(bool)" "$$MINTER_ROLE" "$(TRANSPORT)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+check-transport-config: ## Show TransportBenefit wiring against Token identity registry
+	@echo "TRANSPORT.TOKEN           = $$(cast call "$(TRANSPORT)" "TOKEN()(address)" --rpc-url "$(SEPOLIA_RPC_URL)")"; \
+	echo "TOKEN (env)               = $(TOKEN)"; \
+	echo "TRANSPORT.IDENTITY_REGISTRY = $$(cast call "$(TRANSPORT)" "IDENTITY_REGISTRY()(address)" --rpc-url "$(SEPOLIA_RPC_URL)")"; \
+	echo "TOKEN.identityRegistry    = $$(cast call "$(TOKEN)" "identityRegistry()(address)" --rpc-url "$(SEPOLIA_RPC_URL)")"; \
+	echo "TRANSPORT.BENEFIT_AMOUNT  = $$(cast call "$(TRANSPORT)" "BENEFIT_AMOUNT()(uint256)" --rpc-url "$(SEPOLIA_RPC_URL)")"; \
+	echo "TRANSPORT.admin           = $$(cast call "$(TRANSPORT)" "admin()(address)" --rpc-url "$(SEPOLIA_RPC_URL)")"
+
 ##@ Meta-transactions (ERC-2771)
 schedule-forwarder: ## Schedule trusted forwarder update in ClaimCLPc. Requires FORWARDER env variable
 	@cast send "$(CLAIM)" "setTrustedForwarder(address)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
@@ -123,10 +158,22 @@ check-token-forwarder-pending: ## Show pending trusted forwarder update in CLPc
 check-token-forwarder-match: ## Check if FORWARDER is trusted in CLPc token. Requires FORWARDER env variable
 	@cast call "$(TOKEN)" "isTrustedForwarder(address)(bool)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)"
 
+set-transport-forwarder: ## Set trusted forwarder in TransportBenefit. Requires FORWARDER env variable
+	@cast send "$(TRANSPORT)" "setTrustedForwarder(address)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)" --private-key "$(DEPLOYER_PK)"
+
+check-transport-forwarder: ## Show trusted forwarder configured in TransportBenefit
+	@cast call "$(TRANSPORT)" "trustedForwarder()(address)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
+check-transport-forwarder-match: ## Check if FORWARDER is trusted in TransportBenefit. Requires FORWARDER env variable
+	@cast call "$(TRANSPORT)" "isTrustedForwarder(address)(bool)" "$(FORWARDER)" --rpc-url "$(SEPOLIA_RPC_URL)"
+
 send-calldata: ## Print calldata for transfer(address,uint256). Requires TO and AMOUNT env variables
 	@cast calldata "transfer(address,uint256)" "$(TO)" "$(AMOUNT)"
 
 claim-calldata: ## Print calldata for claim() (useful for relayer requests)
+	@cast calldata "claim()"
+
+claim-transport-calldata: ## Print calldata for TransportBenefit.claim() (useful for relayer requests)
 	@cast calldata "claim()"
 
 help: ## Show this help

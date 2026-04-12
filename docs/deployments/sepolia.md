@@ -31,6 +31,10 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 - ENS: `claimclpc.admapu.eth`
 - Address: `0x2E4F7D60AA4416ead3610bD0f90c80277A8D95BD`
 
+**TransportBenefit**
+- ENS: `transport.admapu.eth`
+- Address: `0xD16B1A6c4b9243473b5e43b16a6A26AD8B71e102`
+
 **Forwarder (ERC2771Forwarder)**
 - ENS: *(opcional, recomendado)*
 - Address: `0xE86e8FaF0b4c69C95BDdb495D51F94e2E7Be8Dfd`
@@ -41,6 +45,7 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 - IdentityRegistryAdapter: https://eth-sepolia.blockscout.com/address/0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21
 - Token:    https://eth-sepolia.blockscout.com/address/0xfb43d4e4dBB4c444e7Dcd73A86e836EC7607f553
 - Claim:    https://eth-sepolia.blockscout.com/address/0x61a8e1725Bb5187CF35Bc1A682Ce55b77E68016b
+- TransportBenefit: https://eth-sepolia.blockscout.com/address/0xD16B1A6c4b9243473b5e43b16a6A26AD8B71e102?tab=index
 - Forwarder: https://eth-sepolia.blockscout.com/address/0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e
 
 ## ABI: métodos expuestos
@@ -118,6 +123,21 @@ Gating:
 - `pendingTrustedForwarderEta()`
 - `claim()`
 - `claimed(address)`
+### TransportBenefit
+
+- `TOKEN()`
+- `IDENTITY_REGISTRY()`
+- `BENEFIT_AMOUNT()`
+- `currentPeriod()`
+- `eligibleSchoolTransport(address)`
+- `claimedByPeriod(address,uint256)`
+- `setEligible(address,bool)`
+- `setEligibleBatch(address[],bool)`
+- `claim()`
+- `setPaused(bool)`
+- `setTrustedForwarder(address)`
+- `trustedForwarder()`
+- `isTrustedForwarder(address)`
 
 ## Cómo interactuar (CLI con Foundry)
 
@@ -128,6 +148,7 @@ export SEPOLIA_RPC_URL="..."
 export DEPLOYER_PK="0x..."   # Private key del admin/deployer
 export ADMIN=$(cast wallet address --private-key "$DEPLOYER_PK")
 export CLAIM_AMOUNT="..."    # Monto fijo del claim, considerar 8 decimales
+export TRANSPORT_BENEFIT_AMOUNT="..."    # Monto mensual del beneficio, considerar 8 decimales
 export FORWARDER_NAME="AdmapuForwarder"
 ```
 
@@ -139,6 +160,7 @@ export VERIFIER="0xD51F4F3D2c35E51FD4Fda03D4Ae8A251801C9c94"
 export IDENTITY_REGISTRY_ADAPTER="0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21"
 export TOKEN="0xfb43d4e4dBB4c444e7Dcd73A86e836EC7607f553"
 export CLAIM="0x61a8e1725Bb5187CF35Bc1A682Ce55b77E68016b"
+export TRANSPORT="0xD16B1A6c4b9243473b5e43b16a6A26AD8B71e102"
 export FORWARDER="0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e"
 ```
 
@@ -150,6 +172,10 @@ El flujo soportado por el repo hoy es:
 3. Deploy de `ERC2771Forwarder` con `script/DeployForwarder.s.sol`
 4. Wiring post-deploy (`MINTER_ROLE` + trusted forwarder timelocked)
 5. Verificación en Blockscout
+7. Deploy de `TransportBenefit` con `script/DeployTransport.s.sol`
+8. Deploy de `ERC2771Forwarder` con `script/DeployForwarder.s.sol`
+9. Wiring post-deploy (`MINTER_ROLE` + trusted forwarder)
+10. Verificación en Blockscout
 
 ### 1) Build + tests
 
@@ -182,7 +208,23 @@ forge script script/DeployClaim.s.sol:DeployClaim \
 export CLAIM=$(jq -r '.returns.claim.value' broadcast/DeployClaim.s.sol/11155111/run-latest.json)
 ```
 
-### 4) Deploy forwarder
+### 4) Deploy transport benefit
+
+Requiere que `TOKEN`, `IDENTITY_REGISTRY_ADAPTER` y `TRANSPORT_BENEFIT_AMOUNT` estén seteados.
+
+`TransportBenefit` en la versión actual usa:
+- `IDENTITY_REGISTRY_ADAPTER` solo para verificar ciudadanía chilena
+- una allowlist interna (`setEligible`) para modelar temporalmente la elegibilidad de transporte escolar
+
+```bash
+forge script script/DeployTransport.s.sol:DeployTransport \
+  --rpc-url "$SEPOLIA_RPC_URL" \
+  --broadcast -vv
+
+export TRANSPORT=$(jq -r '.returns.transportBenefit.value' broadcast/DeployTransport.s.sol/11155111/run-latest.json)
+```
+
+### 5) Deploy forwarder
 
 Requiere que `FORWARDER_NAME` esté seteado.
 
@@ -194,7 +236,7 @@ forge script script/DeployForwarder.s.sol:DeployForwarder \
 export FORWARDER=$(jq -r '.returns.forwarder.value' broadcast/DeployForwarder.s.sol/11155111/run-latest.json)
 ```
 
-### 5) Wiring post-deploy
+### 6) Wiring post-deploy
 
 ```bash
 make grant-claim-minter
@@ -210,14 +252,36 @@ make check-token-forwarder-pending
 make execute-forwarder
 make execute-token-forwarder
 
+make grant-transport-minter
+make check-transport-minter
+make check-transport-config
+
+make set-forwarder
+make set-transport-forwarder
+make set-token-forwarder
 make check-forwarder
+make check-transport-forwarder
 make check-token-forwarder
 
 FORWARDER="$FORWARDER" make check-forwarder-match
+FORWARDER="$FORWARDER" make check-transport-forwarder-match
 FORWARDER="$FORWARDER" make check-token-forwarder-match
 ```
 
-### 6) Snapshot de variables para `.env`
+### 7) Seed de elegibilidad para transporte escolar (PoC)
+
+La elegibilidad de transporte escolar en la versión actual no vive en el registry compartido. Vive en `TransportBenefit` para evitar migrar el registry de `CLPc` durante esta etapa del PoC.
+
+```bash
+export USER_ADDR="0x..."
+export ELIGIBLE=true
+
+make check-user
+make set-transport-eligible
+make check-transport-eligible
+```
+
+### 8) Snapshot de variables para `.env`
 
 ```bash
 export ADMIN="$ADMIN"
@@ -225,12 +289,14 @@ export VERIFIER="$VERIFIER"
 export IDENTITY_REGISTRY_ADAPTER="$IDENTITY_REGISTRY_ADAPTER"
 export TOKEN="$TOKEN"
 export CLAIM="$CLAIM"
+export TRANSPORT="$TRANSPORT"
 export FORWARDER="$FORWARDER"
 ```
 
 En este punto el sistema queda deployado y configurado para:
 - verificación mock en Sepolia
 - claim único por usuario
+- beneficio mensual de transporte escolar con allowlist interna temporal
 - transferencias restringidas a usuarios verificados
 - meta-transacciones vía `ERC2771Forwarder`
 
@@ -270,13 +336,17 @@ cast call "$TOKEN" "hasRole(bytes32,address)(bool)" "$MINTER_ROLE" "$CLAIM" --rp
 Para que el usuario no pague gas:
 - El usuario firma typed-data.
 - El relayer envía `forwarder.execute(...)` y paga gas.
-- `ClaimCLPc` y `CLPc` deben confiar en ese forwarder.
 - Desde este hardening, la confianza en el forwarder se activa recién después del timelock.
+- `ClaimCLPc`, `TransportBenefit` y `CLPc` deben confiar en ese forwarder.
 
 ```bash
 # Forwarder confiable configurado en Claim
 cast call "$CLAIM" "trustedForwarder()(address)" --rpc-url "$SEPOLIA_RPC_URL"
 cast call "$CLAIM" "isTrustedForwarder(address)(bool)" "$FORWARDER" --rpc-url "$SEPOLIA_RPC_URL"
+
+# Forwarder confiable configurado en TransportBenefit
+cast call "$TRANSPORT" "trustedForwarder()(address)" --rpc-url "$SEPOLIA_RPC_URL"
+cast call "$TRANSPORT" "isTrustedForwarder(address)(bool)" "$FORWARDER" --rpc-url "$SEPOLIA_RPC_URL"
 
 # Forwarder confiable configurado en Token (para transfer gasless)
 cast call "$TOKEN" "trustedForwarder()(address)" --rpc-url "$SEPOLIA_RPC_URL"
@@ -322,6 +392,7 @@ Estado actual en Blockscout (Sepolia):
 - `ZKPassportIdentityRegistryAdapter` (`IDENTITY_REGISTRY_ADAPTER`): verificado
 - `CLPc` (`TOKEN`): verificado
 - `ClaimCLPc` (`CLAIM`): verificado
+- `TransportBenefit` (`TRANSPORT`): verificado
 - `ERC2771Forwarder` (`FORWARDER`): verificado
 
 ### Comandos de verificación (Foundry + Blockscout)
@@ -375,6 +446,21 @@ ARGS_CLAIM=$(cast abi-encode "constructor(address,address,uint256,address)" "$TO
 forge verify-contract "$CLAIM" src/ClaimCLPc.sol:ClaimCLPc \
   --chain-id 11155111 \
   --constructor-args "$ARGS_CLAIM" \
+  --verifier blockscout \
+  --verifier-url "$BS_API" \
+  --etherscan-api-key "$ETHERSCAN_API_KEY"
+```
+
+Transport `TransportBenefit`:
+
+```bash
+TRANSPORT_AMOUNT=$(cast call "$TRANSPORT" "BENEFIT_AMOUNT()(uint256)" --rpc-url "$SEPOLIA_RPC_URL" | awk '{print $1}')
+TRANSPORT_ADMIN=$(cast call "$TRANSPORT" "admin()(address)" --rpc-url "$SEPOLIA_RPC_URL")
+ARGS_TRANSPORT=$(cast abi-encode "constructor(address,address,uint256,address)" "$TOKEN" "$IDENTITY_REGISTRY_ADAPTER" "$TRANSPORT_AMOUNT" "$TRANSPORT_ADMIN")
+
+forge verify-contract "$TRANSPORT" src/TransportBenefit.sol:TransportBenefit \
+  --chain-id 11155111 \
+  --constructor-args "$ARGS_TRANSPORT" \
   --verifier blockscout \
   --verifier-url "$BS_API" \
   --etherscan-api-key "$ETHERSCAN_API_KEY"
