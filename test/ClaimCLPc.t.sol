@@ -107,7 +107,8 @@ contract ClaimCLPcTest is Test {
     function testForwardedClaimUsesTrustedForwarder() public {
         _scheduleAndExecuteForwarderUpdate(forwarder);
 
-        bytes memory forwardedCall = abi.encodePacked(abi.encodeWithSelector(claimContract.claim.selector), bytes20(user));
+        bytes memory forwardedCall =
+            abi.encodePacked(abi.encodeWithSelector(claimContract.claim.selector), bytes20(user));
 
         vm.prank(forwarder);
         (bool ok,) = address(claimContract).call(forwardedCall);

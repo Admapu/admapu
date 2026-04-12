@@ -190,9 +190,7 @@ contract CLPcTest is Test {
     function testAdminCanSetTrustedForwarderAfterDelay() public {
         token.setTrustedForwarder(forwarder);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(CLPc.TrustedForwarderUpdateNotReady.selector, block.timestamp + 2 days)
-        );
+        vm.expectRevert(abi.encodeWithSelector(CLPc.TrustedForwarderUpdateNotReady.selector, block.timestamp + 2 days));
         token.executeTrustedForwarderUpdate();
 
         vm.warp(block.timestamp + token.TRUSTED_FORWARDER_UPDATE_DELAY());
