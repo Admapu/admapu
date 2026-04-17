@@ -28,16 +28,10 @@ contract ClaimCLPcTest is Test {
 
         registry = new MockIdentityRegistry(admin);
         token = new CLPc(address(registry), admin);
-        claimContract = new ClaimCLPc(address(token), address(registry), CLAIM_AMOUNT, admin);
+        claimContract = new ClaimCLPc(address(token), address(registry), CLAIM_AMOUNT, admin, forwarder);
 
         token.grantRole(token.MINTER_ROLE(), address(claimContract));
         registry.setVerifiedChilean(user, true);
-    }
-
-    function _scheduleAndExecuteForwarderUpdate(address newForwarder) internal {
-        claimContract.setTrustedForwarder(newForwarder);
-        vm.warp(block.timestamp + claimContract.TRUSTED_FORWARDER_UPDATE_DELAY());
-        claimContract.executeTrustedForwarderUpdate();
     }
 
     function testClaimSucceedsOnceForVerifiedUser() public {
@@ -81,32 +75,12 @@ contract ClaimCLPcTest is Test {
         claimContract.setPaused(true);
     }
 
-    function testOwnerCanSetTrustedForwarderAfterDelay() public {
-        claimContract.setTrustedForwarder(forwarder);
-
-        vm.expectRevert(
-            abi.encodeWithSelector(ClaimCLPc.TrustedForwarderUpdateNotReady.selector, block.timestamp + 2 days)
-        );
-        claimContract.executeTrustedForwarderUpdate();
-
-        vm.warp(block.timestamp + claimContract.TRUSTED_FORWARDER_UPDATE_DELAY());
-        claimContract.executeTrustedForwarderUpdate();
-
+    function testConstructorSetsTrustedForwarder() public {
         assertEq(claimContract.trustedForwarder(), forwarder);
         assertTrue(claimContract.isTrustedForwarder(forwarder));
     }
 
-    function testOwnerCanCancelTrustedForwarderUpdate() public {
-        claimContract.setTrustedForwarder(forwarder);
-        claimContract.cancelTrustedForwarderUpdate();
-
-        assertEq(claimContract.pendingTrustedForwarder(), address(0));
-        assertEq(claimContract.pendingTrustedForwarderEta(), 0);
-    }
-
     function testForwardedClaimUsesTrustedForwarder() public {
-        _scheduleAndExecuteForwarderUpdate(forwarder);
-
         bytes memory forwardedCall =
             abi.encodePacked(abi.encodeWithSelector(claimContract.claim.selector), bytes20(user));
 
@@ -116,5 +90,16 @@ contract ClaimCLPcTest is Test {
         assertTrue(ok);
         assertEq(token.balanceOf(user), CLAIM_AMOUNT);
         assertTrue(claimContract.claimed(user));
+    }
+
+    function testNonTrustedForwarderCannotSpoofSender() public {
+        bytes memory forwardedCall =
+            abi.encodePacked(abi.encodeWithSelector(claimContract.claim.selector), bytes20(user));
+
+        vm.prank(outsider);
+        (bool ok, bytes memory revertData) = address(claimContract).call(forwardedCall);
+
+        assertFalse(ok);
+        assertEq(revertData, abi.encodeWithSelector(ClaimCLPc.NotVerified.selector, outsider));
     }
 }
