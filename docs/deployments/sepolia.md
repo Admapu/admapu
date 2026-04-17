@@ -17,36 +17,36 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 
 **Verifier (MockZKPassportVerifier)**
 - ENS: `mockzk.admapu.eth`
-- Address: `0xcD59e6A78087BEA67a070b92bD7d8ff9d24a2647`
+- Address: `0x0CC1bBc3ca1122F4609c17d4760dF3DA8dd9103E`
 
 **IdentityRegistryAdapter**
 - ENS: `identity.admapu.eth`
-- Address: `0x0Ae1e5Dc605A88C6CD9A032C0b9C567406DBa98f`
+- Address: `0xCE1dfD710d01F37F4A1F36f41716268D757861aa`
 
 **Token (CLPc)**
 - ENS: `clpc.admapu.eth`
-- Address: `0x889679fC04063Bd8706f5c2e5de26E3554FFFCa5`
+- Address: `0xF33087EC774BC3f8A40925d21128fab6FCBe4CbE`
 
 **Claim (ClaimCLPc)**
 - ENS: `claimclpc.admapu.eth`
-- Address: `0x2E4F7D60AA4416ead3610bD0f90c80277A8D95BD`
+- Address: `0x4f56FD374e4eEC9ddacC00eABA4C438D87f3cbff`
 
 **TransportBenefit**
 - ENS: `transport.admapu.eth`
-- Address: `0xD16B1A6c4b9243473b5e43b16a6A26AD8B71e102`
+- Address: `0x7816Fd17Fb801836bcFD742559300e13e322e44b`
 
 **Forwarder (ERC2771Forwarder)**
 - ENS: *(opcional, recomendado)*
-- Address: `0xE86e8FaF0b4c69C95BDdb495D51F94e2E7Be8Dfd`
+- Address: `0x646B0E15C9f7ff0e7d62b2D75073ED9fE37a1e7e`
 
 ## Blockscout links
 
-- Verifier: https://eth-sepolia.blockscout.com/address/0xD51F4F3D2c35E51FD4Fda03D4Ae8A251801C9c94
-- IdentityRegistryAdapter: https://eth-sepolia.blockscout.com/address/0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21
-- Token:    https://eth-sepolia.blockscout.com/address/0xfb43d4e4dBB4c444e7Dcd73A86e836EC7607f553
-- Claim:    https://eth-sepolia.blockscout.com/address/0x61a8e1725Bb5187CF35Bc1A682Ce55b77E68016b
-- TransportBenefit: https://eth-sepolia.blockscout.com/address/0xD16B1A6c4b9243473b5e43b16a6A26AD8B71e102?tab=index
-- Forwarder: https://eth-sepolia.blockscout.com/address/0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e
+- Verifier: https://eth-sepolia.blockscout.com/address/0x0CC1bBc3ca1122F4609c17d4760dF3DA8dd9103E
+- IdentityRegistryAdapter: https://eth-sepolia.blockscout.com/address/0xCE1dfD710d01F37F4A1F36f41716268D757861aa
+- Token:    https://eth-sepolia.blockscout.com/address/0xF33087EC774BC3f8A40925d21128fab6FCBe4CbE
+- Claim:    https://eth-sepolia.blockscout.com/address/0x4f56FD374e4eEC9ddacC00eABA4C438D87f3cbff
+- TransportBenefit: https://eth-sepolia.blockscout.com/address/0x7816Fd17Fb801836bcFD742559300e13e322e44b
+- Forwarder: https://eth-sepolia.blockscout.com/address/0x646B0E15C9f7ff0e7d62b2D75073ED9fE37a1e7e
 
 ## ABI: métodos expuestos
 
