@@ -17,36 +17,36 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 
 **Verifier (MockZKPassportVerifier)**
 - ENS: `mockzk.admapu.eth`
-- Address: `0xcD59e6A78087BEA67a070b92bD7d8ff9d24a2647`
+- Address: `0x0CC1bBc3ca1122F4609c17d4760dF3DA8dd9103E`
 
 **IdentityRegistryAdapter**
 - ENS: `identity.admapu.eth`
-- Address: `0x0Ae1e5Dc605A88C6CD9A032C0b9C567406DBa98f`
+- Address: `0xCE1dfD710d01F37F4A1F36f41716268D757861aa`
 
 **Token (CLPc)**
 - ENS: `clpc.admapu.eth`
-- Address: `0x889679fC04063Bd8706f5c2e5de26E3554FFFCa5`
+- Address: `0xF33087EC774BC3f8A40925d21128fab6FCBe4CbE`
 
 **Claim (ClaimCLPc)**
 - ENS: `claimclpc.admapu.eth`
-- Address: `0x2E4F7D60AA4416ead3610bD0f90c80277A8D95BD`
+- Address: `0x4f56FD374e4eEC9ddacC00eABA4C438D87f3cbff`
 
 **TransportBenefit**
 - ENS: `transport.admapu.eth`
-- Address: `0xD16B1A6c4b9243473b5e43b16a6A26AD8B71e102`
+- Address: `0x7816Fd17Fb801836bcFD742559300e13e322e44b`
 
 **Forwarder (ERC2771Forwarder)**
 - ENS: *(opcional, recomendado)*
-- Address: `0xE86e8FaF0b4c69C95BDdb495D51F94e2E7Be8Dfd`
+- Address: `0x646B0E15C9f7ff0e7d62b2D75073ED9fE37a1e7e`
 
 ## Blockscout links
 
-- Verifier: https://eth-sepolia.blockscout.com/address/0xD51F4F3D2c35E51FD4Fda03D4Ae8A251801C9c94
-- IdentityRegistryAdapter: https://eth-sepolia.blockscout.com/address/0xcF8aFab2abFBcAD243AF1928a329BA566f2ADe21
-- Token:    https://eth-sepolia.blockscout.com/address/0xfb43d4e4dBB4c444e7Dcd73A86e836EC7607f553
-- Claim:    https://eth-sepolia.blockscout.com/address/0x61a8e1725Bb5187CF35Bc1A682Ce55b77E68016b
-- TransportBenefit: https://eth-sepolia.blockscout.com/address/0xD16B1A6c4b9243473b5e43b16a6A26AD8B71e102?tab=index
-- Forwarder: https://eth-sepolia.blockscout.com/address/0xA7a5A1B48A0e82b140a58315843b71F6e1d5c36e
+- Verifier: https://eth-sepolia.blockscout.com/address/0x0CC1bBc3ca1122F4609c17d4760dF3DA8dd9103E
+- IdentityRegistryAdapter: https://eth-sepolia.blockscout.com/address/0xCE1dfD710d01F37F4A1F36f41716268D757861aa
+- Token:    https://eth-sepolia.blockscout.com/address/0xF33087EC774BC3f8A40925d21128fab6FCBe4CbE
+- Claim:    https://eth-sepolia.blockscout.com/address/0x4f56FD374e4eEC9ddacC00eABA4C438D87f3cbff
+- TransportBenefit: https://eth-sepolia.blockscout.com/address/0x7816Fd17Fb801836bcFD742559300e13e322e44b
+- Forwarder: https://eth-sepolia.blockscout.com/address/0x646B0E15C9f7ff0e7d62b2D75073ED9fE37a1e7e
 
 ## ABI: métodos expuestos
 
@@ -66,12 +66,26 @@ La dirección es [admapu.eth](https://sepolia.app.ens.domains/admapu.eth) y toda
 
 Roles / config:
 - `DEFAULT_ADMIN_ROLE()`
+- `defaultAdmin()`
+- `pendingDefaultAdmin()`
+- `defaultAdminDelay()`
+- `beginDefaultAdminTransfer(address)`
+- `acceptDefaultAdminTransfer()`
+- `cancelDefaultAdminTransfer()`
 - `MINTER_ROLE()`
 - `PAUSER_ROLE()`
 - `PROGRAM_ROLE()`
 - `identityRegistry()`
 - `setIdentityRegistry(address)`
+- `executeIdentityRegistryUpdate()`
+- `cancelIdentityRegistryUpdate()`
+- `trustedForwarder()`
 - `setMintingPaused(bool)`
+- `setTrustedForwarder(address)`  // agenda el cambio
+- `executeTrustedForwarderUpdate()`
+- `cancelTrustedForwarderUpdate()`
+- `pendingTrustedForwarder()`
+- `pendingTrustedForwarderEta()`
 - `mintingPaused()`
 - `availableToMint()`
 - `MAX_ANNUAL_SUPPLY()`
@@ -93,6 +107,22 @@ Mint:
 Gating:
 - `canReceive(address)`
 
+### ClaimCLPc
+
+- `owner()`
+- `pendingOwner()`
+- `transferOwnership(address)`
+- `acceptOwnership()`
+- `paused()`
+- `setPaused(bool)`
+- `trustedForwarder()`
+- `setTrustedForwarder(address)`  // agenda el cambio
+- `executeTrustedForwarderUpdate()`
+- `cancelTrustedForwarderUpdate()`
+- `pendingTrustedForwarder()`
+- `pendingTrustedForwarderEta()`
+- `claim()`
+- `claimed(address)`
 ### TransportBenefit
 
 - `TOKEN()`
@@ -142,7 +172,9 @@ El flujo soportado por el repo hoy es:
 3. Deploy de `TransportBenefit` con `script/DeployTransport.s.sol`
 4. Deploy de `ERC2771Forwarder` con `script/DeployForwarder.s.sol`
 5. Wiring post-deploy (`MINTER_ROLE` + trusted forwarder)
-6. Verificación en Blockscout
+6. Seed inicial de elegibilidad de transporte escolar
+7. Smoke tests post-deploy
+8. Verificación en Blockscout
 
 ### 1) Build + tests
 
@@ -205,6 +237,14 @@ export FORWARDER=$(jq -r '.returns.forwarder.value' broadcast/DeployForwarder.s.
 
 ### 6) Wiring post-deploy
 
+Orden recomendado:
+1. Dar `MINTER_ROLE` a `CLAIM` y `TRANSPORT`
+2. Configurar `CLAIM` y `TOKEN` con el mismo `FORWARDER` usando `schedule + execute`
+3. Configurar `TRANSPORT` con el mismo `FORWARDER`
+4. Verificar que los tres contratos apunten al mismo forwarder
+5. Seedear elegibilidad de transporte
+6. Correr smoke tests
+
 ```bash
 make grant-claim-minter
 make check-claim-minter
@@ -214,9 +254,16 @@ make grant-transport-minter
 make check-transport-minter
 make check-transport-config
 
-make set-forwarder
+make schedule-forwarder
+make schedule-token-forwarder
+make check-forwarder-pending
+make check-token-forwarder-pending
+
+# esperar el timelock antes de ejecutar
+make execute-forwarder
+make execute-token-forwarder
+
 make set-transport-forwarder
-make set-token-forwarder
 make check-forwarder
 make check-transport-forwarder
 make check-token-forwarder
@@ -239,7 +286,46 @@ make set-transport-eligible
 make check-transport-eligible
 ```
 
-### 8) Snapshot de variables para `.env`
+### 8) Smoke test mínimo post-deploy
+
+El repositorio expone un checklist operatorio:
+
+```bash
+make smoke-test
+```
+
+Flujo manual mínimo:
+
+```bash
+# 1. Verificación mock
+export USER_ADDR="0x..."
+make whitelist-user
+make check-user
+
+# 2. Claim único
+make check-claim
+USER_PK="0x..." make claim-direct
+make check-claim
+
+# 3. Beneficio de transporte
+export ELIGIBLE=true
+make set-transport-eligible
+make check-transport-eligible
+export PERIOD=$(cast call "$TRANSPORT" "currentPeriod()(uint256)" --rpc-url "$SEPOLIA_RPC_URL")
+make check-transport-claimed
+USER_PK="0x..." make claim-transport-direct
+make check-transport-claimed
+
+# 4. Forwarders
+make check-forwarder
+make check-token-forwarder
+make check-transport-forwarder
+FORWARDER="$FORWARDER" make check-forwarder-match
+FORWARDER="$FORWARDER" make check-token-forwarder-match
+FORWARDER="$FORWARDER" make check-transport-forwarder-match
+```
+
+### 9) Snapshot de variables para `.env`
 
 ```bash
 export ADMIN="$ADMIN"
@@ -294,6 +380,7 @@ cast call "$TOKEN" "hasRole(bytes32,address)(bool)" "$MINTER_ROLE" "$CLAIM" --rp
 Para que el usuario no pague gas:
 - El usuario firma typed-data.
 - El relayer envía `forwarder.execute(...)` y paga gas.
+- Desde este hardening, la confianza en el forwarder se activa recién después del timelock.
 - `ClaimCLPc`, `TransportBenefit` y `CLPc` deben confiar en ese forwarder.
 
 ```bash
@@ -397,8 +484,8 @@ Claim `ClaimCLPc`:
 
 ```bash
 CLAIM_AMOUNT=$(cast call "$CLAIM" "CLAIM_AMOUNT()(uint256)" --rpc-url "$SEPOLIA_RPC_URL" | awk '{print $1}')
-CLAIM_ADMIN=$(cast call "$CLAIM" "admin()(address)" --rpc-url "$SEPOLIA_RPC_URL")
-ARGS_CLAIM=$(cast abi-encode "constructor(address,address,uint256,address)" "$TOKEN" "$IDENTITY_REGISTRY_ADAPTER" "$CLAIM_AMOUNT" "$CLAIM_ADMIN")
+CLAIM_OWNER=$(cast call "$CLAIM" "owner()(address)" --rpc-url "$SEPOLIA_RPC_URL")
+ARGS_CLAIM=$(cast abi-encode "constructor(address,address,uint256,address)" "$TOKEN" "$IDENTITY_REGISTRY_ADAPTER" "$CLAIM_AMOUNT" "$CLAIM_OWNER")
 
 forge verify-contract "$CLAIM" src/ClaimCLPc.sol:ClaimCLPc \
   --chain-id 11155111 \

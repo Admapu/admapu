@@ -15,6 +15,8 @@ El contrato `CLPc` utiliza `AccessControl` de OpenZeppelin para gestionar permis
 - Administración de roles
 - Configuración de parámetros sensibles
 
+Desde el hardening de seguridad, el admin por defecto usa `AccessControlDefaultAdminRules`, por lo que la transferencia del rol administrador principal ya no es instantánea.
+
 El sistema prioriza un control estricto de emisión con capacidad de detener la emisión ante incidentes. Además, se asegura el cumplimiento mediante verificación de identidad (ZK-gated transfers)
 
 ---
@@ -31,6 +33,7 @@ El sistema prioriza un control estricto de emisión con capacidad de detener la 
 - `grantRole(...)`
 - `revokeRole(...)`
 - Configuración de parámetros críticos (ej: verificador de identidad)
+- Inicio de transferencia de admin por delay
 
 **Asignación inicial**
 - Cuenta que ejecuta el deploy del contrato.
@@ -39,7 +42,8 @@ El sistema prioriza un control estricto de emisión con capacidad de detener la 
 - Debe ser transferido a:
   - Multisig, DAO o entidad institucional
 - No debe usarse para operaciones diarias.
-- Idealmente protegido por timelock (fuera del scope de M1).
+- Tiene delay on-chain para el rol admin por defecto.
+- Los cambios de `trustedForwarder` también deben pasar por timelock antes de activarse.
 
 ---
 
@@ -74,8 +78,8 @@ El sistema prioriza un control estricto de emisión con capacidad de detener la 
 - Permite pausar y reanudar la emisión de tokens.
 
 **Permisos**
-- `pauseMinting()`
-- `unpauseMinting()`
+- `setMintingPaused(true)`
+- `setMintingPaused(false)`
 
 **Importante (M1)**
 > La pausa **solo afecta al minting**.  
@@ -120,11 +124,11 @@ Estas reglas son independientes del sistema de pausa de minting.
    - Estado de pausa
 
 ### Incidente de emisión
-1. Pauser ejecuta `pauseMinting`
+1. Pauser ejecuta `setMintingPaused(true)`
 2. Se detiene toda nueva emisión
 3. Se analiza el incidente
 4. Admin decide acciones correctivas
-5. Pauser ejecuta `unpauseMinting`
+5. Pauser ejecuta `setMintingPaused(false)`
 
 ---
 
@@ -164,4 +168,3 @@ Este esquema busca demostrar que es posible:
 Todo esto sin comprometer la simplicidad ni la auditabilidad del sistema.
 
 ---
-

@@ -11,10 +11,11 @@ contract DeployClaim is Script {
         address token = vm.envAddress("TOKEN");
         address identityRegistry = vm.envAddress("IDENTITY_REGISTRY_ADAPTER");
         uint256 claimAmount = vm.envUint("CLAIM_AMOUNT");
+        address trustedForwarder = vm.envOr("FORWARDER", address(0));
 
         vm.startBroadcast(pk);
 
-        ClaimCLPc c = new ClaimCLPc(token, identityRegistry, claimAmount, admin);
+        ClaimCLPc c = new ClaimCLPc(token, identityRegistry, claimAmount, admin, trustedForwarder);
 
         vm.stopBroadcast();
 
@@ -22,6 +23,7 @@ contract DeployClaim is Script {
         console2.log("Token:", token);
         console2.log("IdentityRegistryAdapter:", identityRegistry);
         console2.log("ClaimAmount:", claimAmount);
+        console2.log("TrustedForwarder:", trustedForwarder);
         console2.log("Claim:", address(c));
 
         return address(c);
